@@ -1,0 +1,5 @@
+{
+  "name": "PagoMatic - Gestión de Pagos B2B",
+  "description": "Una aplicación web de gestión de pagos B2B que cuenta con un panel ejecutivo con actualizaciones de datos en tiempo real y un simulador de pagos para reflejar un flujo de pagos en vivo.",
+  "requestFramePermissions": []
+}

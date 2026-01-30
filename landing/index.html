@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagomatic | El Futuro del Control de Franquicias</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@1,400;1,700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #02040a;
+            --bg-card: #0b101b;
+            --primary-cyan: #06b6d4;
+            /* Cyan vibrante */
+            --primary-purple: #8b5cf6;
+            /* Purple moderno */
+            --text-white: #ffffff;
+            --text-gray: #94a3b8;
+            --gradient-main: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-white);
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Background Effects */
+        .glow-effect {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 70%);
+            filter: blur(80px);
+            z-index: -1;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Navbar */
+        nav {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 30px;
+            height: 30px;
+            background: var(--gradient-main);
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+        }
+
+        .cta-button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            border-color: var(--primary-cyan);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            display: flex;
+            align-items: center;
+            min-height: 85vh;
+            gap: 4rem;
+            position: relative;
+        }
+
+        .hero-content {
+            flex: 1;
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 .highlight {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 400;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding-right: 1rem;
+        }
+
+        .hero p {
+            color: var(--text-gray);
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+            max-width: 500px;
+        }
+
+        .hero-image {
+            flex: 1.2;
+            position: relative;
+        }
+
+        .hero-image img {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Floating Cards Grid */
+        .cards-section {
+            padding: 5rem 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+        }
+
+        .card-cyan {
+            background: linear-gradient(180deg, rgba(6, 182, 212, 0.1) 0%, rgba(6, 182, 212, 0) 100%);
+            border-top: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        .card-purple {
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0) 100%);
+            border-top: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .card h3 span {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .card p {
+            color: var(--text-gray);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .icon-box {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .icon-cyan {
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--primary-cyan);
+        }
+
+        .icon-purple {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--primary-purple);
+        }
+
+        /* Feature Strip */
+        .strip {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 2rem 0;
+            margin: 5rem 0;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 5rem 0;
+            text-align: center;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .hero {
+                flex-direction: column;
+                text-align: center;
+                padding-top: 4rem;
+            }
+
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .hero-image img {
+                width: 100%;
+            }
+
+            .hero-content {
+                margin-bottom: 2rem;
+            }
+
+            .hero p {
+                margin: 0 auto 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="glow-effect"></div>
+
+    <div class="container">
+        <nav>
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                PAGOMATIC
+            </div>
+            <button class="cta-button">Acceso Cliente</button>
+        </nav>
+
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Control Maestro<br> <span class="highlight">para Franquicias</span></h1>
+                <p>La plataforma definitiva que unifica distribución, finanzas e inventario. Diseñada para cadenas que
+                    exigen perfección en la última milla.</p>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="cta-button"
+                        style="background: var(--text-white); color: black; border: none; font-weight: 700;">Solicitar
+                        Demo</button>
+                    <span style="font-size: 0.9rem; color: var(--text-gray);">Ver Video →</span>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="hero_modern.png" alt="Dashboard Futurista">
+            </div>
+        </section>
+
+        <div class="strip">
+            <span>Logística 3.0</span>
+            <span>Auditoría Forense</span>
+            <span>Control Total</span>
+            <span>Cloud & WhatsApp</span>
+        </div>
+
+        <section class="cards-section">
+            <div class="grid">
+                <!-- Card 1 -->
+                <div class="card card-cyan">
+                    <div class="icon-box icon-cyan">💎</div>
+                    <h3>Bóveda <span style="color: var(--primary-cyan)">de Seguridad</span></h3>
+                    <p>Cada movimiento queda registrado. Las transacciones anuladas no desaparecen, se archivan en una
+                        bóveda forense para auditoría total.</p>
+                    <a href="#" style="color: var(--primary-cyan); text-decoration: none; font-weight: 600;">Explorar
+                        Auditoría →</a>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="card card-purple">
+                    <div class="icon-box icon-purple">⚡</div>
+                    <h3>Gestión <span style="color: var(--primary-purple)">Inteligente</span></h3>
+                    <p>Centraliza múltiples sucursales. Controla límites de deuda, inventario en tiempo real y flujo de
+                        caja desde un solo panel maestro.</p>
+                    <a href="#" style="color: var(--primary-purple); text-decoration: none; font-weight: 600;">Ver
+                        Capacidades →</a>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="card" style="border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div class="icon-box" style="background: rgba(255,255,255,0.1);">📱</div>
+                    <h3>Connect <span style="font-style: italic;">Everywhere</span></h3>
+                    <p>Tus socios reciben comprobantes por WhatsApp al instante. Impresión térmica Bluetooth integrada.
+                        Cero fricción.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>© 2026 Pagomatic POS Engine. El estándar en gestión de distribución.</p>
+        </footer>
+    </div>
+
+</body>
+
+</html>
