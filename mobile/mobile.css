@@ -1,0 +1,857 @@
+/* ========================================
+   PAGOMATIC MOBILE - ESTILOS BANCARIOS
+   ======================================== */
+
+/* Variables CSS */
+:root {
+    --mobile-bg-primary: #0a1628;
+    --mobile-bg-secondary: #0f2847;
+    --mobile-accent-primary: #00bcd4;
+    --mobile-accent-secondary: #26c6da;
+    --mobile-accent-gradient: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+    --mobile-card-bg: rgba(15, 40, 71, 0.7);
+    --mobile-card-border: rgba(0, 188, 212, 0.2);
+    --mobile-text-primary: #ffffff;
+    --mobile-text-secondary: rgba(255, 255, 255, 0.7);
+    --mobile-text-muted: rgba(255, 255, 255, 0.5);
+    --mobile-danger: #ef4444;
+    --mobile-success: #22c55e;
+    --mobile-warning: #f59e0b;
+    --mobile-glass-bg: rgba(255, 255, 255, 0.05);
+    --mobile-glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Reset y Base */
+.mobile-app {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: linear-gradient(180deg, var(--mobile-bg-primary) 0%, var(--mobile-bg-secondary) 100%);
+    color: var(--mobile-text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Efecto de fondo con blur */
+.mobile-app::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(0, 188, 212, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(38, 198, 218, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ========================================
+   HEADER MÓVIL
+   ======================================== */
+.mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    position: relative;
+    z-index: 10;
+}
+
+.mobile-logo {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: var(--mobile-accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.mobile-user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mobile-user-greeting {
+    text-align: right;
+}
+
+.mobile-user-greeting span {
+    display: block;
+    font-size: 11px;
+    color: var(--mobile-text-muted);
+}
+
+.mobile-user-greeting strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--mobile-text-primary);
+}
+
+.mobile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--mobile-accent-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 188, 212, 0.3);
+}
+
+/* ========================================
+   CONTENIDO PRINCIPAL
+   ======================================== */
+.mobile-content {
+    flex: 1;
+    padding: 0 16px 100px;
+    overflow-y: auto;
+    position: relative;
+    z-index: 5;
+}
+
+/* ========================================
+   CARDS GLASSMORPHISM
+   ======================================== */
+.mobile-card {
+    background: var(--mobile-card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--mobile-card-border);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-card:active {
+    transform: scale(0.98);
+}
+
+.mobile-card-highlight {
+    background: linear-gradient(135deg, rgba(0, 188, 212, 0.2) 0%, rgba(15, 40, 71, 0.8) 100%);
+    border-color: rgba(0, 188, 212, 0.4);
+}
+
+.mobile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.mobile-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--mobile-glass-bg);
+    border: 1px solid var(--mobile-glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.mobile-card-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mobile-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mobile-card-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--mobile-text-primary);
+    letter-spacing: -1px;
+    margin-top: 4px;
+}
+
+.mobile-card-sublabel {
+    font-size: 11px;
+    color: var(--mobile-text-muted);
+    margin-top: 4px;
+}
+
+.mobile-card-arrow {
+    margin-left: auto;
+    font-size: 20px;
+    color: var(--mobile-accent-primary);
+}
+
+/* ========================================
+   ALERTAS
+   ======================================== */
+.mobile-alert-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(15, 40, 71, 0.8) 100%);
+    border-color: rgba(239, 68, 68, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+}
+
+.mobile-alert-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mobile-alert-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mobile-danger);
+    font-size: 18px;
+}
+
+.mobile-alert-text h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--mobile-text-primary);
+    margin: 0;
+}
+
+.mobile-alert-text p {
+    font-size: 11px;
+    color: var(--mobile-text-muted);
+    margin: 2px 0 0;
+}
+
+.mobile-alert-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.mobile-alert-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* ========================================
+   ACCIONES RÁPIDAS
+   ======================================== */
+.mobile-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 20px 0;
+}
+
+.mobile-quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 8px;
+    background: var(--mobile-glass-bg);
+    border: 1px solid var(--mobile-glass-border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mobile-quick-action:active {
+    transform: scale(0.95);
+    background: rgba(0, 188, 212, 0.1);
+    border-color: var(--mobile-accent-primary);
+}
+
+.mobile-quick-action-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(0, 188, 212, 0.2) 0%, rgba(0, 188, 212, 0.05) 100%);
+    border: 1px solid rgba(0, 188, 212, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--mobile-accent-primary);
+}
+
+.mobile-quick-action span {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--mobile-text-secondary);
+    text-align: center;
+}
+
+/* ========================================
+   SECCIÓN DE TÍTULO
+   ======================================== */
+.mobile-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mobile-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 20px 0 12px;
+}
+
+/* ========================================
+   LISTA DE ITEMS
+   ======================================== */
+.mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mobile-list-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--mobile-card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--mobile-glass-border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mobile-list-item:active {
+    transform: scale(0.98);
+    background: rgba(0, 188, 212, 0.1);
+}
+
+.mobile-list-item-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: white;
+}
+
+.mobile-list-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.mobile-list-item-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mobile-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-list-item-subtitle {
+    font-size: 12px;
+    color: var(--mobile-text-muted);
+    margin-top: 2px;
+}
+
+.mobile-list-item-value {
+    text-align: right;
+}
+
+.mobile-list-item-amount {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--mobile-text-primary);
+}
+
+.mobile-list-item-amount.danger {
+    color: var(--mobile-danger);
+}
+
+.mobile-list-item-amount.success {
+    color: var(--mobile-success);
+}
+
+.mobile-list-item-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--mobile-text-muted);
+    margin-top: 2px;
+}
+
+/* ========================================
+   TAB BAR INFERIOR
+   ======================================== */
+.mobile-tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: rgba(10, 22, 40, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--mobile-glass-border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 100;
+}
+
+.mobile-tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 12px;
+}
+
+.mobile-tab-item.active {
+    background: rgba(0, 188, 212, 0.15);
+}
+
+.mobile-tab-icon {
+    font-size: 22px;
+    color: var(--mobile-text-muted);
+    transition: color 0.2s ease;
+}
+
+.mobile-tab-item.active .mobile-tab-icon {
+    color: var(--mobile-accent-primary);
+}
+
+.mobile-tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--mobile-text-muted);
+    transition: color 0.2s ease;
+}
+
+.mobile-tab-item.active .mobile-tab-label {
+    color: var(--mobile-accent-primary);
+}
+
+/* ========================================
+   PANTALLAS ESPECÍFICAS
+   ======================================== */
+
+/* Pantalla de Despachos */
+.mobile-dispatch-form {
+    padding: 0;
+}
+
+.mobile-form-group {
+    margin-bottom: 20px;
+}
+
+.mobile-form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mobile-text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mobile-form-input,
+.mobile-form-select {
+    width: 100%;
+    padding: 16px;
+    background: var(--mobile-glass-bg);
+    border: 1px solid var(--mobile-glass-border);
+    border-radius: 14px;
+    color: var(--mobile-text-primary);
+    font-size: 16px;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.mobile-form-input:focus,
+.mobile-form-select:focus {
+    border-color: var(--mobile-accent-primary);
+}
+
+.mobile-form-input::placeholder {
+    color: var(--mobile-text-muted);
+}
+
+.mobile-form-select option {
+    background: var(--mobile-bg-primary);
+    color: var(--mobile-text-primary);
+}
+
+/* Botones */
+.mobile-btn {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mobile-btn-primary {
+    background: var(--mobile-accent-gradient);
+    color: white;
+    box-shadow: 0 4px 20px rgba(0, 188, 212, 0.3);
+}
+
+.mobile-btn-primary:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 10px rgba(0, 188, 212, 0.2);
+}
+
+.mobile-btn-secondary {
+    background: var(--mobile-glass-bg);
+    border: 1px solid var(--mobile-glass-border);
+    color: var(--mobile-text-primary);
+}
+
+.mobile-btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+}
+
+/* ========================================
+   PANTALLA DE DETALLE
+   ======================================== */
+.mobile-detail-header {
+    text-align: center;
+    padding: 20px 0 30px;
+}
+
+.mobile-detail-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 24px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-detail-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--mobile-text-primary);
+    margin-bottom: 4px;
+}
+
+.mobile-detail-subtitle {
+    font-size: 14px;
+    color: var(--mobile-text-muted);
+}
+
+.mobile-detail-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.mobile-detail-stat {
+    background: var(--mobile-card-bg);
+    border: 1px solid var(--mobile-glass-border);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+}
+
+.mobile-detail-stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--mobile-text-primary);
+}
+
+.mobile-detail-stat-label {
+    font-size: 11px;
+    color: var(--mobile-text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+}
+
+/* ========================================
+   MODAL MÓVIL
+   ======================================== */
+.mobile-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 200;
+    animation: fadeIn 0.2s ease;
+}
+
+.mobile-modal {
+    width: 100%;
+    max-height: 90vh;
+    background: var(--mobile-bg-secondary);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding: 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
+    animation: slideUp 0.3s ease;
+    overflow-y: auto;
+}
+
+.mobile-modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--mobile-glass-border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+}
+
+.mobile-modal-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--mobile-text-primary);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   PULL TO REFRESH INDICATOR
+   ======================================== */
+.mobile-refresh-indicator {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0;
+}
+
+.mobile-refresh-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--mobile-glass-border);
+    border-top-color: var(--mobile-accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   BADGE DE CANTIDAD
+   ======================================== */
+.mobile-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.mobile-badge-danger {
+    background: var(--mobile-danger);
+    color: white;
+}
+
+.mobile-badge-success {
+    background: var(--mobile-success);
+    color: white;
+}
+
+.mobile-badge-warning {
+    background: var(--mobile-warning);
+    color: white;
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+.mobile-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.mobile-empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.mobile-empty-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--mobile-text-primary);
+    margin-bottom: 8px;
+}
+
+.mobile-empty-text {
+    font-size: 14px;
+    color: var(--mobile-text-muted);
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+.mobile-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+}
+
+.mobile-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--mobile-glass-border);
+    border-top-color: var(--mobile-accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+}
+
+.mobile-loading-text {
+    font-size: 14px;
+    color: var(--mobile-text-muted);
+}
+
+/* ========================================
+   SWIPE ACTIONS (para gestos)
+   ======================================== */
+.mobile-swipe-wrapper {
+    overflow: hidden;
+    position: relative;
+}
+
+.mobile-swipe-actions {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+}
+
+.mobile-swipe-action {
+    width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+}
+
+.mobile-swipe-action-danger {
+    background: var(--mobile-danger);
+}
+
+.mobile-swipe-action-success {
+    background: var(--mobile-success);
+}
+
+/* ========================================
+   BACK BUTTON
+   ======================================== */
+.mobile-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--mobile-glass-bg);
+    border: 1px solid var(--mobile-glass-border);
+    border-radius: 12px;
+    color: var(--mobile-text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 16px;
+}
+
+.mobile-back-btn:active {
+    transform: scale(0.98);
+}
+
+/* Animaciones de transición entre pantallas */
+.mobile-screen-enter {
+    animation: slideInRight 0.3s ease;
+}
+
+.mobile-screen-exit {
+    animation: slideOutLeft 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutLeft {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+}

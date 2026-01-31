@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -18,6 +18,7 @@ import { MENU_ITEMS, type View } from './constants';
 import type { CartItem, Product } from './types';
 import { type DocumentData } from './utils/shareUtils';
 import { printThermal, type PrinterSize } from './utils/thermalPrinterUtils';
+import MobileApp from './mobile/MobileApp';
 
 const AppContent: React.FC = () => {
   const { notify } = useNotifications();
@@ -456,10 +457,45 @@ interface AppProps {
   initialView?: View;
 }
 
-const App: React.FC<AppProps> = () => (
-  <NotificationProvider>
-    <AppContent />
-  </NotificationProvider>
-);
+// Función para detectar si es un dispositivo móvil
+const isMobileDevice = (): boolean => {
+  // Detectar por ancho de pantalla
+  if (typeof window !== 'undefined') {
+    const isMobileWidth = window.innerWidth < 768;
+    // Detectar por user agent (móviles y tablets pequeñas)
+    const isMobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // iPad específicamente se puede usar en modo desktop, así que no lo incluimos por defecto
+    return isMobileWidth || isMobileUA;
+  }
+  return false;
+};
+
+const App: React.FC<AppProps> = () => {
+  const [isMobile, setIsMobile] = useState<boolean>(isMobileDevice());
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(isMobileDevice());
+    };
+
+    // Escuchar cambios de tamaño de ventana
+    window.addEventListener('resize', handleResize);
+
+    // Limpiar al desmontar
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Si es móvil, renderizar la app móvil
+  if (isMobile) {
+    return <MobileApp />;
+  }
+
+  // Si es desktop, renderizar la app desktop normal
+  return (
+    <NotificationProvider>
+      <AppContent />
+    </NotificationProvider>
+  );
+};
 
 export default App;
