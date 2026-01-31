@@ -9,7 +9,22 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PagoMatic" />
-  <title>Pagomatic App</title>
+  <title>Pagomatic App v2</title>
+  <script>
+    // ANTÍDOTO DE CACHÉ: Forzar limpieza de Service Workers viejos
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log("Service Worker destruido para limpiar caché.");
+        }
+      });
+    }
+    // Forzar recarga si detectamos versión vieja (simple check)
+    if (window.location.search !== '?v=new') {
+      // No forzamos recarga infinita, solo limpiamos SW
+    }
+  </script>
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
