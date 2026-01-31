@@ -18,7 +18,7 @@ import { MENU_ITEMS, type View } from './constants';
 import type { CartItem, Product } from './types';
 import { type DocumentData } from './utils/shareUtils';
 import { printThermal, type PrinterSize } from './utils/thermalPrinterUtils';
-import MobileApp from './mobile/MobileApp';
+// import MobileApp from './mobile/MobileApp';
 
 const AppContent: React.FC = () => {
   const { notify } = useNotifications();
@@ -521,7 +521,9 @@ const App: React.FC<AppProps> = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Si es móvil, renderizar la app móvil
+  // MODO EMERGENCIA: Restaurar Desktop Puro
+  // Si es móvil, renderizar la app móvil (COMENTADO POR SEGURIDAD)
+  /*
   if (isMobile) {
     return (
       <ErrorBoundary>
@@ -531,6 +533,7 @@ const App: React.FC<AppProps> = () => {
       </ErrorBoundary>
     );
   }
+  */
 
   // Si es desktop, renderizar la app desktop normal
   return (
