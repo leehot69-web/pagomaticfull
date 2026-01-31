@@ -470,6 +470,44 @@ const isMobileDevice = (): boolean => {
   return false;
 };
 
+// Error Boundary para capturar crasheos
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 20, color: 'white', background: '#990000', height: '100vh', overflow: 'auto' }}>
+          <h1>Algo salió mal 😢</h1>
+          <p>Por favor toma una captura de esto y envíala:</p>
+          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+            {this.state.error?.toString()}
+          </pre>
+          <button
+            onClick={() => { localStorage.clear(); window.location.reload(); }}
+            style={{ background: 'white', color: 'black', padding: 10, marginTop: 20, border: 'none', borderRadius: 5 }}
+          >
+            Borrar datos y Recargar
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const App: React.FC<AppProps> = () => {
   const [isMobile, setIsMobile] = useState<boolean>(isMobileDevice());
 
@@ -478,23 +516,28 @@ const App: React.FC<AppProps> = () => {
       setIsMobile(isMobileDevice());
     };
 
-    // Escuchar cambios de tamaño de ventana
     window.addEventListener('resize', handleResize);
-
-    // Limpiar al desmontar
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Si es móvil, renderizar la app móvil
   if (isMobile) {
-    return <MobileApp />;
+    return (
+      <ErrorBoundary>
+        <NotificationProvider>
+          <MobileApp />
+        </NotificationProvider>
+      </ErrorBoundary>
+    );
   }
 
   // Si es desktop, renderizar la app desktop normal
   return (
-    <NotificationProvider>
-      <AppContent />
-    </NotificationProvider>
+    <ErrorBoundary>
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
+    </ErrorBoundary>
   );
 };
 
