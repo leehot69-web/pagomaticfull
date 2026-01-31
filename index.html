@@ -9,16 +9,16 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PagoMatic" />
-  <title>Pagomatic App v2.1</title>
+  <title>Pagomatic App v2.2</title>
   <script>
-    // Limpieza de Service Workers solo si es necesario (evitar bucles)
-    if ('serviceWorker' in navigator && !localStorage.getItem('sw_cleaned_v2')) {
+    // Limpieza forzada para la versión 2.2
+    if ('serviceWorker' in navigator && localStorage.getItem('sw_cleaned_v') !== '2.2') {
       navigator.serviceWorker.getRegistrations().then(function (registrations) {
         for (let registration of registrations) {
           registration.unregister();
         }
-        localStorage.setItem('sw_cleaned_v2', 'true');
-        console.log("Cache purgada. Reiniciando...");
+        localStorage.setItem('sw_cleaned_v', '2.2');
+        console.log("Nueva versión detectada. Limpiando caché y reiniciando...");
         window.location.reload();
       });
     }

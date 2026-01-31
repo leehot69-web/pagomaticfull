@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pagomatic-v1';
+const CACHE_NAME = 'pagomatic-v2.2';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
