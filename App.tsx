@@ -509,7 +509,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 const App: React.FC<AppProps> = () => {
-  const [isMobile, setIsMobile] = useState<boolean>(isMobileDevice());
+  // MODO DIAGNÓSTICO: Forzar Desktop para ver si revive la PC
+  const [isMobile, setIsMobile] = useState<boolean>(false); // isMobileDevice() comentado
 
   useEffect(() => {
     const handleResize = () => {
