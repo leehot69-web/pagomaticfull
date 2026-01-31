@@ -87,17 +87,10 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
         return alerts;
     }, [dispatches, products, invoices]);
 
-    // Calcular deuda por sucursal
-    const storeDebts = React.useMemo(() => {
-        return stores.map(store => {
-            const storeDispatches = dispatches.filter(d => d.storeId === store.id && d.status === 'active');
-            const totalDispatched = storeDispatches.reduce((acc, d) => acc + d.totalAmount, 0);
-            const storePaymentsForStore = storePayments.filter(p => p.storeId === store.id && p.status !== 'cancelled');
-            const totalPaid = storePaymentsForStore.reduce((acc, p) => acc + p.amount, 0);
-            const debt = totalDispatched - totalPaid;
-            return { ...store, calculatedDebt: debt };
-        });
-    }, [stores, dispatches, storePayments]);
+    // Ya no calculamos storeDebts aquí, usamos stores del hook que ya trae totalDebt
+    const sortedStores = React.useMemo(() => {
+        return [...stores].sort((a, b) => (b.totalDebt || 0) - (a.totalDebt || 0));
+    }, [stores]);
 
     // Auth móvil
     if (!currentUser) {
@@ -153,9 +146,8 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
                             <div className="mobile-card-header">
                                 <div className="mobile-card-icon">📈</div>
                                 <div>
-                                    <div className="mobile-card-label">Por Cobrar</div>
                                     <div className="mobile-card-value">
-                                        ${metrics?.totalAccountsReceivable?.toLocaleString() || '0'}
+                                        ${metrics?.totalAccountsReceivable?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                     </div>
                                     <div className="mobile-card-sublabel">Saldo Pendiente</div>
                                 </div>
@@ -169,7 +161,7 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
                                 <div>
                                     <div className="mobile-card-label">Por Pagar</div>
                                     <div className="mobile-card-value">
-                                        ${metrics?.totalAccountsPayable?.toLocaleString() || '0'}
+                                        ${metrics?.totalAccountsPayable?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                     </div>
                                     <div className="mobile-card-sublabel">Deuda Actual</div>
                                 </div>
@@ -182,7 +174,7 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
                                 <div>
                                     <div className="mobile-card-label">Inventario</div>
                                     <div className="mobile-card-value">
-                                        ${metrics?.inventoryValueAtCost?.toLocaleString() || '0'}
+                                        ${metrics?.inventoryValueAtCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                     </div>
                                     <div className="mobile-card-sublabel">Valor Total en Stock</div>
                                 </div>
@@ -230,9 +222,8 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
                         {/* Lista de sucursales con deuda */}
                         <h3 className="mobile-section-title">Sucursales con Saldo</h3>
                         <div className="mobile-list">
-                            {storeDebts
-                                .filter(s => s.calculatedDebt > 0)
-                                .sort((a, b) => b.calculatedDebt - a.calculatedDebt)
+                            {sortedStores
+                                .filter(s => s.totalDebt > 0)
                                 .slice(0, 5)
                                 .map(store => (
                                     <div
@@ -255,7 +246,7 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
                                         </div>
                                         <div className="mobile-list-item-value">
                                             <div className="mobile-list-item-amount danger">
-                                                ${store.calculatedDebt.toLocaleString()}
+                                                ${store.totalDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                             <div className="mobile-list-item-badge">Pendiente</div>
                                         </div>
@@ -274,7 +265,7 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
 
                         <h3 className="mobile-section-title">Todas las Sucursales</h3>
                         <div className="mobile-list">
-                            {storeDebts.map(store => (
+                            {sortedStores.map(store => (
                                 <div
                                     key={store.id}
                                     className="mobile-list-item"
@@ -294,11 +285,11 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
                                         <div className="mobile-list-item-subtitle">{store.location}</div>
                                     </div>
                                     <div className="mobile-list-item-value">
-                                        <div className={`mobile-list-item-amount ${store.calculatedDebt > 0 ? 'danger' : 'success'}`}>
-                                            ${store.calculatedDebt.toLocaleString()}
+                                        <div className={`mobile-list-item-amount ${store.totalDebt > 0 ? 'danger' : 'success'}`}>
+                                            ${store.totalDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
                                         <div className="mobile-list-item-badge">
-                                            {store.calculatedDebt > 0 ? 'Debe' : 'Al día'}
+                                            {store.totalDebt > 0 ? 'Debe' : 'Al día'}
                                         </div>
                                     </div>
                                 </div>
@@ -308,7 +299,7 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
                 );
 
             case 'store-detail':
-                const store = storeDebts.find(s => s.id === selectedStoreId);
+                const store = stores.find(s => s.id === selectedStoreId);
                 if (!store) return null;
 
                 const storeDispatchesList = dispatches
@@ -334,8 +325,8 @@ const MobileAppContent: React.FC<MobileAppContentProps> = () => {
 
                         <div className="mobile-detail-stats">
                             <div className="mobile-detail-stat">
-                                <div className="mobile-detail-stat-value" style={{ color: store.calculatedDebt > 0 ? 'var(--mobile-danger)' : 'var(--mobile-success)' }}>
-                                    ${store.calculatedDebt.toLocaleString()}
+                                <div className="mobile-detail-stat-value" style={{ color: store.totalDebt > 0 ? 'var(--mobile-danger)' : 'var(--mobile-success)' }}>
+                                    ${store.totalDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                                 <div className="mobile-detail-stat-label">Deuda Total</div>
                             </div>

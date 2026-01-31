@@ -228,18 +228,18 @@ export const seedDatabase = async () => {
                 storeId: i % 2 === 0 ? 'st-01' : 'st-02',
                 timestamp: dateStr,
                 status: 'active',
-                totalAmount: 2000 + (Math.random() * 3000),
+                totalAmount: 2500, // Valor fijo para consistencia
                 driverName: 'Transporte Histórico',
                 vehiclePlate: 'HIST-001',
                 items: [{ productId: 'p-carn-01', quantity: 100, unitSupplyPrice: 1.20 }],
                 returns: []
             });
 
-            // Cobranza diaria (un poco menos que el despacho para mostrar deuda)
+            // Cobranza diaria
             payments.push({
                 id: `pay-hist-${i}`,
                 storeId: i % 2 === 0 ? 'st-01' : 'st-02',
-                amount: 1500 + (Math.random() * 2000),
+                amount: 1800, // Valor fijo para consistencia
                 date: dateStr,
                 method: 'Transferencia',
                 reference: `REF-H-0${i}`

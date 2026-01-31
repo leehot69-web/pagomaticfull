@@ -9,40 +9,32 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PagoMatic" />
-  <title>Pagomatic App v2</title>
+  <title>Pagomatic App v2.1</title>
   <script>
-    // ANTÍDOTO DE CACHÉ: Forzar limpieza de Service Workers viejos
-    if ('serviceWorker' in navigator) {
+    // Limpieza de Service Workers solo si es necesario (evitar bucles)
+    if ('serviceWorker' in navigator && !localStorage.getItem('sw_cleaned_v2')) {
       navigator.serviceWorker.getRegistrations().then(function (registrations) {
         for (let registration of registrations) {
           registration.unregister();
-          console.log("Service Worker destruido para limpiar caché.");
         }
+        localStorage.setItem('sw_cleaned_v2', 'true');
+        console.log("Cache purgada. Reiniciando...");
+        window.location.reload();
       });
-    }
-    // Forzar recarga si detectamos versión vieja (simple check)
-    if (window.location.search !== '?v=new') {
-      // No forzamos recarga infinita, solo limpiamos SW
     }
   </script>
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+
+  <!-- Usamos Tailwind via CDN solo para prototipado rápido si no está en el bundle -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.1.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
-    "react/": "https://esm.sh/react@^19.1.1/",
-    "recharts": "https://esm.sh/recharts@^3.1.2"
-  }
-}
-</script>
+
   <script>
     tailwind.config = {
       theme: {
