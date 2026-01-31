@@ -18,7 +18,7 @@ import { MENU_ITEMS, type View } from './constants';
 import type { CartItem, Product } from './types';
 import { type DocumentData } from './utils/shareUtils';
 import { printThermal, type PrinterSize } from './utils/thermalPrinterUtils';
-// import MobileApp from './mobile/MobileApp';
+import MobileApp from './mobile/MobileApp';
 
 const AppContent: React.FC = () => {
   const { notify } = useNotifications();
@@ -509,8 +509,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 const App: React.FC<AppProps> = () => {
-  // MODO DIAGNÓSTICO: Forzar Desktop para ver si revive la PC
-  const [isMobile, setIsMobile] = useState<boolean>(false); // isMobileDevice() comentado
+  const [isMobile, setIsMobile] = useState<boolean>(isMobileDevice());
 
   useEffect(() => {
     const handleResize = () => {
@@ -521,9 +520,7 @@ const App: React.FC<AppProps> = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // MODO EMERGENCIA: Restaurar Desktop Puro
-  // Si es móvil, renderizar la app móvil (COMENTADO POR SEGURIDAD)
-  /*
+  // Si es móvil, renderizar la app móvil
   if (isMobile) {
     return (
       <ErrorBoundary>
@@ -533,7 +530,6 @@ const App: React.FC<AppProps> = () => {
       </ErrorBoundary>
     );
   }
-  */
 
   // Si es desktop, renderizar la app desktop normal
   return (
