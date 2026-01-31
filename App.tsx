@@ -485,12 +485,10 @@ const App: React.FC<AppProps> = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  /* Detección móvil desactivada temporalmente para restaurar servicio
   // Si es móvil, renderizar la app móvil
   if (isMobile) {
     return <MobileApp />;
   }
-  */
 
   // Si es desktop, renderizar la app desktop normal
   return (
