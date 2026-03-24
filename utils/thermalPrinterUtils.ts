@@ -82,8 +82,8 @@ export const generateThermalHTML = (doc: DocumentData, options: ThermalPrintOpti
         </head>
         <body>
             <div class="center header">
-                <div class="bold">POCHO CASA MATRIZ</div>
-                <div>RIF: J-00000000-0</div>
+                <div class="bold" style="font-size: 14px;">${(doc.businessName || 'INVERSIONES GUAICAIPURO C.A.').toUpperCase()}</div>
+                <div>RIF: ${doc.businessTaxId || 'J-31214041-0'}</div>
                 <div class="status-badge">${statusLabel}</div>
                 <h1>${title}</h1>
             </div>
@@ -140,11 +140,11 @@ export const generateThermalHTML = (doc: DocumentData, options: ThermalPrintOpti
 
             <div style="margin-top: 20px; display: flex; justify-between: space-between;">
                 <div style="text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 5px;">
-                    ENTREGA<br>${doc.generatedBy?.toUpperCase().split(' ')[0] || 'FIRMA'}
+                    ENTREGA/PAGA<br>${doc.generatedBy?.toUpperCase().split(' ')[0] || 'FIRMA'}
                 </div>
                 <div style="width: 10%;"></div>
                 <div style="text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 5px;">
-                    RECIBE<br>FIRMA/SELLO
+                    RECIBE/COBRA<br>${doc.receivedBy?.toUpperCase().split(' ')[0] || 'FIRMA'}
                 </div>
             </div>
 
@@ -251,7 +251,7 @@ export const printThermal = async (doc: DocumentData, options: ThermalPrintOptio
             await sendEscPos(init);
             await sendEscPos(center);
             await sendEscPos(boldOn);
-            await sendEscPos(encoder.encode("POCHO CASA MATRIZ\n"));
+            await sendEscPos(encoder.encode(`${(doc.businessName || "INVERSIONES GUAICAIPURO C.A.").toUpperCase()}\n`));
             await sendEscPos(boldOff);
             await sendEscPos(encoder.encode(`${(doc.type || 'RECIBO').toUpperCase()}\n`));
             await sendEscPos(left);

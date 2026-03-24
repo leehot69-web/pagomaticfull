@@ -16,6 +16,12 @@ const AdminCenter: React.FC = () => {
         requirePaymentApproval,
         requireInvoiceApproval,
         handleUpdateAppSettings,
+        handleUpdateQuickAccessConfig,
+        quickAccessConfig,
+        pinnedBrands,
+        handleUpdatePinnedBrands,
+        showBrandFilter,
+        handleUpdateShowBrandFilter,
         handleApproveDocument,
         handleRejectDocument,
         currentUser,
@@ -124,8 +130,8 @@ const AdminCenter: React.FC = () => {
                 </div>
 
                 <div className="flex gap-4">
-                    <div className="bg-white p-4 rounded-3xl border-2 border-gray-100 flex items-center gap-4 shadow-sm">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${totalInQueue > 0 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-400'}`}>
+                    <div className="bg-white p-4 rounded-md border-2 border-gray-100 flex items-center gap-4 shadow-sm">
+                        <div className={`w-12 h-12 rounded-sm flex items-center justify-center ${totalInQueue > 0 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-400'}`}>
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <div>
@@ -137,16 +143,16 @@ const AdminCenter: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 bg-gray-200/50 p-1.5 rounded-2xl w-fit">
+            <div className="flex gap-2 bg-gray-200/50 p-1.5 rounded-md w-fit">
                 <button
                     onClick={() => setActiveTab('queue')}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase transition-all ${activeTab === 'queue' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    className={`px-6 py-2.5 rounded-sm text-sm font-black uppercase transition-all ${activeTab === 'queue' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                     Cola de Aprobación {totalInQueue > 0 && <span className="ml-2 bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px] animate-pulse">{totalInQueue}</span>}
                 </button>
                 <button
                     onClick={() => setActiveTab('settings')}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase transition-all ${activeTab === 'settings' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    className={`px-6 py-2.5 rounded-sm text-sm font-black uppercase transition-all ${activeTab === 'settings' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                     Ajustes Jefe
                 </button>
@@ -155,7 +161,7 @@ const AdminCenter: React.FC = () => {
             {activeTab === 'queue' ? (
                 <div className="grid gap-6">
                     {totalInQueue === 0 ? (
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-[40px] p-20 text-center space-y-4">
+                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-md p-20 text-center space-y-4">
                             <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
                                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
                             </div>
@@ -168,8 +174,8 @@ const AdminCenter: React.FC = () => {
                             {pendingDispatches.map(d => {
                                 const store = stores.find(s => s.id === d.storeId);
                                 return (
-                                    <div key={d.id} className="bg-white border-2 border-red-200 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 group pending-pulse hover:border-red-400 transition-all">
-                                        <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shrink-0">
+                                    <div key={d.id} className="bg-white border-2 border-red-200 rounded-md p-6 flex flex-col md:flex-row items-center gap-6 group pending-pulse hover:border-red-400 transition-all">
+                                        <div className="w-14 h-14 bg-red-50 text-red-600 rounded-sm flex items-center justify-center shrink-0">
                                             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                                         </div>
                                         <div className="flex-1 space-y-1">
@@ -181,8 +187,8 @@ const AdminCenter: React.FC = () => {
                                             <p className="text-sm text-gray-500 font-medium">Importe: ${d.totalAmount.toLocaleString()} • Esperando tu firma física para liberar carga.</p>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => setRejectingDoc({ entity: 'dispatch', id: d.id })} className="px-5 py-3 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-black uppercase hover:bg-red-50 hover:text-red-600 transition-all border border-gray-100">Anular</button>
-                                            <button onClick={() => handleConfirmApprove('dispatch', d.id)} className="px-5 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-emerald-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 italic">
+                                            <button onClick={() => setRejectingDoc({ entity: 'dispatch', id: d.id })} className="px-5 py-3 bg-gray-50 text-gray-400 rounded-sm text-[10px] font-black uppercase hover:bg-red-50 hover:text-red-600 transition-all border border-gray-100">Anular</button>
+                                            <button onClick={() => handleConfirmApprove('dispatch', d.id)} className="px-5 py-3 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase shadow-lg shadow-emerald-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 italic">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
                                                 Autorizar e Imprimir
                                             </button>
@@ -195,8 +201,8 @@ const AdminCenter: React.FC = () => {
                             {pendingPayments.map(p => {
                                 const supplier = suppliers.find(s => s.id === p.supplierId);
                                 return (
-                                    <div key={p.id} className="bg-white border-2 border-gray-100 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 group hover:border-red-200 transition-all">
-                                        <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shrink-0">
+                                    <div key={p.id} className="bg-white border-2 border-gray-100 rounded-md p-6 flex flex-col md:flex-row items-center gap-6 group hover:border-red-200 transition-all">
+                                        <div className="w-14 h-14 bg-red-50 text-red-600 rounded-sm flex items-center justify-center shrink-0">
                                             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                                         </div>
                                         <div className="flex-1 space-y-1">
@@ -219,8 +225,8 @@ const AdminCenter: React.FC = () => {
                             {pendingStorePayments.map(p => {
                                 const store = stores.find(s => s.id === p.storeId);
                                 return (
-                                    <div key={p.id} className="bg-white border-2 border-amber-100 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 group hover:border-amber-200 transition-all">
-                                        <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shrink-0">
+                                    <div key={p.id} className="bg-white border-2 border-amber-100 rounded-md p-6 flex flex-col md:flex-row items-center gap-6 group hover:border-amber-200 transition-all">
+                                        <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-sm flex items-center justify-center shrink-0">
                                             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                                         </div>
                                         <div className="flex-1 space-y-1">
@@ -243,8 +249,8 @@ const AdminCenter: React.FC = () => {
                             {pendingInvoices.map(inv => {
                                 const supplier = suppliers.find(s => s.id === inv.supplierId);
                                 return (
-                                    <div key={inv.id} className="bg-white border-2 border-slate-100 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 group hover:border-slate-300 transition-all">
-                                        <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center shrink-0">
+                                    <div key={inv.id} className="bg-white border-2 border-slate-100 rounded-md p-6 flex flex-col md:flex-row items-center gap-6 group hover:border-slate-300 transition-all">
+                                        <div className="w-14 h-14 bg-slate-900 text-white rounded-sm flex items-center justify-center shrink-0">
                                             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                         </div>
                                         <div className="flex-1 space-y-1">
@@ -266,56 +272,147 @@ const AdminCenter: React.FC = () => {
                     )}
                 </div>
             ) : (
-                <div className="max-w-2xl bg-white border-2 border-gray-100 rounded-[40px] p-10 space-y-10">
-                    <div className="space-y-1 border-b border-gray-100 pb-6">
-                        <h2 className="text-2xl font-black text-gray-900 uppercase italic">Gobernanza Administrativa</h2>
-                        <p className="text-gray-500 text-sm">Decide qué acciones requieren tu intervención obligatoria.</p>
+    <div className="max-w-2xl bg-white border-2 border-gray-100 rounded-md p-10 space-y-10">
+        <div className="space-y-1 border-b border-gray-100 pb-6">
+            <h2 className="text-2xl font-black text-gray-900 uppercase italic">Gobernanza Administrativa</h2>
+            <p className="text-gray-500 text-sm">Decide qué acciones requieren tu intervención obligatoria.</p>
+        </div>
+
+        <div className="space-y-6">
+            <div className="flex items-center justify-between p-6 bg-gray-50 rounded-md group border-2 border-transparent hover:border-indigo-100 transition-all">
+                <div className="space-y-1">
+                    <h4 className="font-black text-gray-900 uppercase text-sm">Supervisión de Despachos</h4>
+                    <p className="text-xs text-gray-500">Los envíos a sucursales quedan en espera de tu OK.</p>
+                </div>
+                <button
+                    onClick={() => handleUpdateAppSettings('requireDispatchApproval', !requireDispatchApproval)}
+                    className={`w-14 h-8 rounded-full relative transition-all duration-500 ${requireDispatchApproval ? 'bg-indigo-600 shadow-lg shadow-indigo-200' : 'bg-gray-200'}`}
+                >
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${requireDispatchApproval ? 'left-7 shadow-sm' : 'left-1 shadow-inner'}`} />
+                </button>
+            </div>
+
+            <div className="flex items-center justify-between p-6 bg-gray-50 rounded-md group border-2 border-transparent hover:border-red-100 transition-all">
+                <div className="space-y-1">
+                    <h4 className="font-black text-gray-900 uppercase text-sm">Validación de Pagos</h4>
+                    <p className="text-xs text-gray-500">Todo egreso de dinero (sucursales/proveedores) requiere autorización.</p>
+                </div>
+                <button
+                    onClick={() => handleUpdateAppSettings('requirePaymentApproval', !requirePaymentApproval)}
+                    className={`w-14 h-8 rounded-full relative transition-all duration-500 ${requirePaymentApproval ? 'bg-red-600 shadow-lg shadow-red-200' : 'bg-gray-200'}`}
+                >
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${requirePaymentApproval ? 'left-7 shadow-sm' : 'left-1 shadow-inner'}`} />
+                </button>
+            </div>
+
+            <div className="flex items-center justify-between p-6 bg-gray-50 rounded-md group border-2 border-transparent hover:border-emerald-100 transition-all">
+                <div className="space-y-1">
+                    <h4 className="font-black text-gray-900 uppercase text-sm">Control de Compras</h4>
+                    <p className="text-xs text-gray-500">Las facturas nuevas de proveedores no afectan stock hasta ser visadas.</p>
+                </div>
+                <button
+                    onClick={() => handleUpdateAppSettings('requireInvoiceApproval', !requireInvoiceApproval)}
+                    className={`w-14 h-8 rounded-full relative transition-all duration-500 ${requireInvoiceApproval ? 'bg-emerald-600 shadow-lg shadow-emerald-200' : 'bg-gray-200'}`}
+                >
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${requireInvoiceApproval ? 'left-7 shadow-sm' : 'left-1 shadow-inner'}`} />
+                </button>
+            </div>
+        </div>
+
+                    <div className="space-y-6 pt-6 border-t border-gray-100">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-black text-gray-900 uppercase italic">Control de Accesos</h2>
+                            <p className="text-gray-500 text-sm">Activa o desactiva los módulos que aparecen en la pantalla inicial.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { id: 'dispatches', label: 'Nuevo Despacho', desc: 'Acceso a ventas y carga' },
+                                { id: 'stores', label: 'Gestión Sucursales', desc: 'Cobros y saldos' },
+                                { id: 'inventory', label: 'Consultar Stock', desc: 'Ver existencias' },
+                                { id: 'suppliers_load', label: 'Cargar Factura', desc: 'Entrada proveedor' },
+                                { id: 'suppliers_pay', label: 'Pagar Facturas', desc: 'Egreso proveedor' },
+                                { id: 'reports_vault', label: 'Bóveda Auditoría', desc: 'Operaciones anuladas' },
+                                { id: 'reports_intel', label: 'Inteligencia Negocio', desc: 'Reportes y KPI' },
+                                { id: 'personnel', label: 'Gestión Usuarios', desc: 'Perfiles y claves' },
+                                { id: 'security', label: 'Configuración', desc: 'Ajustes del sistema' },
+                            ].map(item => {
+                                const isActive = quickAccessConfig.includes(item.id);
+                                return (
+                                    <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-md group hover:border-orange-200 transition-all">
+                                        <div className="space-y-0.5">
+                                            <p className="text-sm font-black text-gray-900 uppercase">{item.label}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold">{item.desc}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const newConfig = isActive 
+                                                    ? quickAccessConfig.filter((i: string) => i !== item.id)
+                                                    : [...quickAccessConfig, item.id];
+                                                handleUpdateQuickAccessConfig(newConfig);
+                                            }}
+                                            className={`px-3 py-1.5 rounded-sm text-[10px] font-black uppercase transition-all ${isActive ? 'bg-orange-600 text-white shadow-md shadow-orange-100' : 'bg-white text-gray-400 border border-gray-200'}`}
+                                        >
+                                            {isActive ? 'Visible' : 'Oculto'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl group border-2 border-transparent hover:border-indigo-100 transition-all">
+                    <div className="space-y-6 pt-6 border-t border-gray-100">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-black text-gray-900 uppercase italic">Marcas Favoritas (Panel Despachos)</h2>
+                            <p className="text-gray-500 text-sm">Selecciona las marcas que aparecerán como acceso rápido en la terminal de carga.</p>
+                        </div>
+
+                        <div className="flex items-center justify-between pb-4">
                             <div className="space-y-1">
-                                <h4 className="font-black text-gray-900 uppercase text-sm">Supervisión de Despachos</h4>
-                                <p className="text-xs text-gray-500">Los envíos a sucursales quedan en espera de tu OK.</p>
+                                <h4 className="font-black text-gray-900 uppercase text-sm italic">Visibilidad de Marcas</h4>
+                                <p className="text-xs text-gray-500">Activa o desactiva la barra de filtrado por marcas en el terminal.</p>
                             </div>
                             <button
-                                onClick={() => handleUpdateAppSettings('requireDispatchApproval', !requireDispatchApproval)}
-                                className={`w-14 h-8 rounded-full relative transition-all duration-500 ${requireDispatchApproval ? 'bg-indigo-600 shadow-lg shadow-indigo-200' : 'bg-gray-200'}`}
+                                onClick={() => handleUpdateShowBrandFilter(!showBrandFilter)}
+                                className={`w-14 h-8 rounded-full relative transition-all duration-500 ${showBrandFilter ? 'bg-indigo-600 shadow-lg shadow-indigo-200' : 'bg-gray-200'}`}
                             >
-                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${requireDispatchApproval ? 'left-7 shadow-sm' : 'left-1 shadow-inner'}`} />
+                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${showBrandFilter ? 'left-7 shadow-sm' : 'left-1 shadow-inner'}`} />
                             </button>
                         </div>
 
-                        <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl group border-2 border-transparent hover:border-red-100 transition-all">
-                            <div className="space-y-1">
-                                <h4 className="font-black text-gray-900 uppercase text-sm">Validación de Pagos</h4>
-                                <p className="text-xs text-gray-500">Todo egreso de dinero (sucursales/proveedores) requiere autorización.</p>
-                            </div>
-                            <button
-                                onClick={() => handleUpdateAppSettings('requirePaymentApproval', !requirePaymentApproval)}
-                                className={`w-14 h-8 rounded-full relative transition-all duration-500 ${requirePaymentApproval ? 'bg-red-600 shadow-lg shadow-red-200' : 'bg-gray-200'}`}
-                            >
-                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${requirePaymentApproval ? 'left-7 shadow-sm' : 'left-1 shadow-inner'}`} />
-                            </button>
-                        </div>
-
-                        <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl group border-2 border-transparent hover:border-emerald-100 transition-all">
-                            <div className="space-y-1">
-                                <h4 className="font-black text-gray-900 uppercase text-sm">Control de Compras</h4>
-                                <p className="text-xs text-gray-500">Las facturas nuevas de proveedores no afectan stock hasta ser visadas.</p>
-                            </div>
-                            <button
-                                onClick={() => handleUpdateAppSettings('requireInvoiceApproval', !requireInvoiceApproval)}
-                                className={`w-14 h-8 rounded-full relative transition-all duration-500 ${requireInvoiceApproval ? 'bg-emerald-600 shadow-lg shadow-emerald-200' : 'bg-gray-200'}`}
-                            >
-                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-500 ${requireInvoiceApproval ? 'left-7 shadow-sm' : 'left-1 shadow-inner'}`} />
-                            </button>
-                        </div>
+                        {showBrandFilter && (
+                            <>
+                                <p className="text-gray-500 text-[11px] font-bold uppercase tracking-wider mb-4">— Configurar Accesos Rápidos —</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {Array.from(new Set(products.map(p => p.brand).filter(Boolean))).sort().map(brand => {
+                                        const isPinned = pinnedBrands.includes(brand!);
+                                        return (
+                                            <button
+                                                key={brand}
+                                                onClick={() => {
+                                                    const newPinned = isPinned 
+                                                        ? pinnedBrands.filter(b => b !== brand)
+                                                        : [...pinnedBrands, brand!];
+                                                    handleUpdatePinnedBrands(newPinned);
+                                                }}
+                                                className={`px-4 py-2 rounded-md text-[10px] font-black uppercase transition-all border ${isPinned ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-200'}`}
+                                            >
+                                                {isPinned && <span className="mr-2">★</span>}
+                                                {brand}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {pinnedBrands.length === 0 && (
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase italic">Ninguna marca seleccionada. Se mostrarán las primeras 5 por defecto.</p>
+                                )}
+                            </>
+                        )}
                     </div>
 
                     <div className="pt-6 border-t border-gray-100">
-                        <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-100/50 flex gap-4">
-                            <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center shrink-0">
+                        <div className="bg-amber-50 p-6 rounded-md border-2 border-amber-100/50 flex gap-4">
+                            <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-sm flex items-center justify-center shrink-0">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             </div>
                             <p className="text-[11px] font-bold text-amber-900 leading-relaxed italic">NOTA: Activar estas opciones asegura que nada salga de tu control, pero requiere tu atención constante para no detener los procesos del equipo de trabajo en el local.</p>
@@ -327,7 +424,7 @@ const AdminCenter: React.FC = () => {
             {/* Modal de Motivo de Rechazo */}
             {rejectingDoc && (
                 <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-md rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="bg-white w-full max-w-md rounded-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
                         <div className="p-10 space-y-6 text-center">
                             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
                                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -340,14 +437,14 @@ const AdminCenter: React.FC = () => {
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
                                 placeholder="Ej: Precio incorrecto, esperar a mañana..."
-                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-3xl p-6 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-red-100 transition-all resize-none h-32"
+                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-md p-6 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-red-100 transition-all resize-none h-32"
                             />
                             <div className="flex gap-4">
-                                <button onClick={() => setRejectingDoc(null)} className="flex-1 py-4 font-black uppercase text-[10px] text-gray-400 hover:bg-gray-50 rounded-2xl transition-all">Cancelar</button>
+                                <button onClick={() => setRejectingDoc(null)} className="flex-1 py-4 font-black uppercase text-[10px] text-gray-400 hover:bg-gray-50 rounded-sm transition-all">Cancelar</button>
                                 <button
                                     onClick={handleConfirmReject}
                                     disabled={!rejectReason.trim()}
-                                    className="flex-1 py-4 font-black uppercase text-[10px] bg-red-600 text-white rounded-2xl shadow-lg shadow-red-200 hover:scale-105 transition-all disabled:opacity-50"
+                                    className="flex-1 py-4 font-black uppercase text-[10px] bg-red-600 text-white rounded-sm shadow-lg shadow-red-200 hover:scale-105 transition-all disabled:opacity-50"
                                 >
                                     Confirmar Rechazo
                                 </button>

@@ -41,7 +41,7 @@ select:focus {
 
 ::-webkit-scrollbar-thumb {
   background: #d1d5db;
-  border-radius: 10px;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -106,4 +106,30 @@ select:focus {
   animation: master-blink 2s infinite !important;
   border-width: 2px !important;
   border-style: solid !important;
+}
+
+/* Print Overrides */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body, html {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 10pt !important;
+  }
+
+  .print-container {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 1cm;
+  }
 }

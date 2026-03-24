@@ -6,6 +6,11 @@ import type { DashboardMetrics, Product, Supplier, Store, StockDispatch, CartIte
 import { useState } from 'react';
 import { useNotifications } from '../NotificationSystem';
 
+export const generateId = (prefix: string) => {
+    const isCryptoSupported = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function';
+    return isCryptoSupported ? `${prefix}-${crypto.randomUUID()}` : `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
 export const useSimulatedData = () => {
     const { notify, confirm, prompt } = useNotifications();
     // Seed database and start auto-backup on mount
@@ -51,12 +56,20 @@ export const useSimulatedData = () => {
     const reqDispApp = useLiveQuery(() => db.settings.get('requireDispatchApproval'));
     const reqPayApp = useLiveQuery(() => db.settings.get('requirePaymentApproval'));
     const reqInvApp = useLiveQuery(() => db.settings.get('requireInvoiceApproval'));
+    const quickAccessSet = useLiveQuery(() => db.settings.get('quickAccessConfig'));
+    const pinnedBrandsSet = useLiveQuery(() => db.settings.get('pinnedBrands'));
+    const showBrandFilterSet = useLiveQuery(() => db.settings.get('showBrandFilter'));
 
     const storeName = storeNameSetting?.value || 'POCHO CASA MATRIZ';
     const printerSize = printerSizeSetting?.value || '80mm';
     const requireDispatchApproval = reqDispApp?.value || false;
     const requirePaymentApproval = reqPayApp?.value || false;
     const requireInvoiceApproval = reqInvApp?.value || false;
+    const quickAccessConfig = quickAccessSet?.value || [
+        'dispatches', 'stores', 'inventory', 'suppliers_load', 'suppliers_pay', 'reports_vault', 'reports_intel', 'personnel', 'security'
+    ];
+    const pinnedBrands = pinnedBrandsSet?.value || [];
+    const showBrandFilter = showBrandFilterSet?.value !== false; // Default to true
 
     // --- SESIÓN SIMULADA ---
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -214,57 +227,83 @@ export const useSimulatedData = () => {
                 return sum + lossVal;
             }, 0);
 
+        // 2. Pérdidas por Devoluciones Dañadas/Vencidas/Extraviadas en Despachos
+        const dispatchLosses = dispatches.reduce((sum, d) => {
+            const badReturns = (d.returns || []).filter(r => r.reason !== 'good_condition');
+            return sum + badReturns.reduce((acc, r) => {
+                const p = products.find(prod => prod.id === r.productId);
+                const cost = (p?.purchaseCost || 0) + (p?.purchaseTax || 0) + (p?.purchaseFreight || 0);
+                return acc + (r.quantity * cost);
+            }, 0);
+        }, 0);
+
+        const netLosses = totalLosses + dispatchLosses;
+
         return {
             totalAccountsReceivable: totalReceivable,
             totalAccountsPayable: totalPayable,
             inventoryValueAtCost: calculatedProducts.reduce((acc, p) => acc + (p.stock * p.purchaseCost), 0),
             activeStores: stores.length,
-            totalProfit: totalProfit - totalLosses, // Utilidad neta real
-            totalLosses: totalLosses // Nueva métrica para el botón de auditoría
+            totalProfit: totalProfit - netLosses, // Utilidad neta real
+            totalLosses: netLosses // Métricas unificadas de pérdida
         };
-    }, [calculatedStores, calculatedSuppliers, calculatedProducts, stores.length, totalProfit, invoices]);
+    }, [calculatedStores, calculatedSuppliers, calculatedProducts, stores.length, totalProfit, invoices, dispatches]);
 
     // --- ACCIONES ESCRITURA EN DEXIE ---
 
-    const handleManualStockAdjustment = async (pId: string, qty: number, rsn: string, dispatchNumber?: string) => {
+    const handleManualStockAdjustment = async (pId: string, qty: number, rsn: string) => {
         const prod = products.find(p => p.id === pId);
         if (!prod) return;
-        const adjustmentId = `adj-${Date.now()}`;
-        const finalFolio = dispatchNumber || adjustmentId.slice(-6).toUpperCase();
+        
+        await db.transaction('rw', [db.stockAdjustments, db.invoices, db.auditLogs], async () => {
+            const isLoss = qty < 0;
+            let supplierId = 'sup-local';
+            let invoiceNumber = '';
+            let finalReason = rsn;
 
-        // 1. Registrar el Ajuste Técnico
-        await db.stockAdjustments.add({
-            id: adjustmentId,
-            productId: pId,
-            quantity: qty,
-            reason: rsn + (dispatchNumber ? ` (Folio: ${dispatchNumber})` : ''),
-            timestamp: new Date().toISOString()
-        });
+            if (!isLoss && rsn.includes('|')) {
+                const parts = rsn.split('|');
+                supplierId = parts[0] || 'sup-local';
+                invoiceNumber = parts[1] || '';
+                finalReason = `ENTRADA MANUAL: ${invoiceNumber}`;
+            }
 
-        // 2. Generar Documento de Respaldo (Factura Virtual o Nota de Baja)
-        const invoiceId = `inv-local-${Date.now()}`;
-        const isLoss = qty < 0;
+            const adjustmentId = generateId('adj');
+            const finalFolio = invoiceNumber || adjustmentId.slice(-6).toUpperCase();
 
-        await db.invoices.add({
-            id: invoiceId,
-            supplierId: 'sup-local',
-            invoiceNumber: `${isLoss ? 'BAJA' : 'VIRT'}-${finalFolio}`,
-            date: new Date().toISOString().split('T')[0],
-            totalAmount: isLoss ? 0 : (qty * prod.purchaseCost),
-            amountPaid: isLoss ? 0 : (qty * prod.purchaseCost),
-            status: 'paid',
-            notes: `${isLoss ? '⚠️ NOTA DE BAJA (MERMA/ROBO)' : 'ENTRADA PRODUCCIÓN'}: ${rsn}`,
-            items: [{
+            // 1. Registrar el Ajuste Técnico
+            await db.stockAdjustments.add({
+                id: adjustmentId,
                 productId: pId,
                 quantity: qty,
-                unitCost: prod.purchaseCost,
-                unitTax: 0,
-                unitFreight: 0,
-                totalItemCost: Math.abs(qty * prod.purchaseCost)
-            }]
-        });
+                reason: finalReason,
+                timestamp: new Date().toISOString()
+            });
 
-        await logAction(isLoss ? 'anular' : 'create', 'invoice', invoiceId, `${isLoss ? 'Merma registrada' : 'Entrada produccion'}: ${qty} unidades. Motivo: ${rsn}`);
+            // 2. Generar Documento de Respaldo (Factura o Nota de Baja)
+            const invoiceId = generateId('inv-adj');
+
+            await db.invoices.add({
+                id: invoiceId,
+                supplierId: supplierId,
+                invoiceNumber: invoiceNumber ? invoiceNumber : `${isLoss ? 'BAJA' : 'VIRT'}-${finalFolio}`,
+                date: new Date().toISOString().split('T')[0],
+                totalAmount: isLoss ? 0 : (qty * prod.purchaseCost),
+                amountPaid: isLoss ? 0 : (qty * prod.purchaseCost),
+                status: 'paid',
+                notes: `${isLoss ? '⚠️ NOTA DE BAJA (MERMA/ROBO)' : 'ENTRADA DE STOCK'}: ${finalReason}`,
+                items: [{
+                    productId: pId,
+                    quantity: qty,
+                    unitCost: prod.purchaseCost,
+                    unitTax: 0,
+                    unitFreight: 0,
+                    totalItemCost: Math.abs(qty * prod.purchaseCost)
+                }]
+            });
+
+            await logAction(isLoss ? 'anular' : 'create', 'invoice', invoiceId, `${isLoss ? 'Merma registrada' : 'Entrada manual'}: ${qty} unidades. Motivo: ${finalReason}`);
+        });
     };
 
     const handleDispatch = async (cart: CartItem[], sId: string, dNum: string, driver?: string, plate?: string) => {
@@ -293,13 +332,29 @@ export const useSimulatedData = () => {
             }
 
             // Facturas Vencidas
-            const overdue = dispatches.filter(d =>
-                d.storeId === sId &&
-                d.status === 'active' &&
-                d.dueDate &&
-                new Date(d.dueDate) < new Date()
-            );
-            if (overdue.length > 0) {
+            const overdue = dispatches.filter(d => {
+                if (d.storeId !== sId || d.status !== 'active' || !d.dueDate || new Date(d.dueDate) >= new Date()) return false;
+                
+                // Si la tienda no tiene deuda global, no hay facturas vencidas realmente
+                if (store.totalDebt <= 0.05) return false;
+
+                const returnedValue = (d.returns || []).reduce((acc, r) => {
+                    const item = d.items.find(i => i.productId === r.productId);
+                    return acc + (r.quantity * (item?.unitSupplyPrice || 0));
+                }, 0);
+                const netAmount = d.totalAmount - returnedValue;
+                const paid = storePayments
+                    .filter(p => p.dispatchId === d.id && p.status !== 'cancelled')
+                    .reduce((sum, p) => sum + p.amount, 0);
+                
+                // Asumimos que si no hay abonos ligados a este despacho, pero hay deuda global y esta factura está vencida,
+                // la factura podría estar pendiente. Para ser estrictos y permitir operar, solo bloqueamos
+                // si estamos seguros de que la factura específica tiene saldo pendiente (usando dispatchId)
+                // O si la tienda tiene deuda global y hay una factura vieja
+                return netAmount > paid + 0.05;
+            });
+
+            if (overdue.length > 0 && store.totalDebt > 0) {
                 await logAction('block', 'store', sId, `Intento de despacho bloqueado por ${overdue.length} factura(s) vencida(s)`);
                 return { success: false, reason: 'overdue' };
             }
@@ -310,30 +365,37 @@ export const useSimulatedData = () => {
         const paymentTerm = store?.config?.paymentTermDays || 15; // Usar plazo de la sucursal o 15 días por defecto
         due.setDate(now.getDate() + paymentTerm);
 
-        const dispatchId = `disp-${Date.now()}`;
-        await db.dispatches.add({
-            id: dispatchId,
-            dispatchNumber: dNum,
-            storeId: sId,
-            timestamp: now.toISOString(),
-            status: 'active', // Ensure status is set
-            dueDate: due.toISOString().split('T')[0],
-            items: cart.map(c => ({ productId: c.id, quantity: c.quantity, unitSupplyPrice: c.supplyPrice })),
-            returns: [],
-            totalAmount: total,
-            driverName: driver || '',
-            vehiclePlate: plate || '',
-            printCount: 0,
-            approvalStatus: requireDispatchApproval ? 'pending' : 'approved'
+        const dispatchId = generateId('disp');
+        
+        await db.transaction('rw', [db.dispatches, db.auditLogs], async () => {
+            await db.dispatches.add({
+                id: dispatchId,
+                dispatchNumber: dNum,
+                storeId: sId,
+                timestamp: now.toISOString(),
+                status: 'active', // Ensure status is set
+                dueDate: due.toISOString().split('T')[0],
+                items: cart.map(c => ({ productId: c.id, quantity: c.quantity, unitSupplyPrice: c.supplyPrice })),
+                returns: [],
+                totalAmount: total,
+                driverName: driver || '',
+                vehiclePlate: plate || '',
+                printCount: 0,
+                approvalStatus: requireDispatchApproval ? 'pending' : 'approved'
+            });
+
+            if (requireDispatchApproval) {
+                await logAction('create', 'dispatch', dispatchId, `Despacho #${dNum} pendiente de aprobación.`);
+            } else {
+                await logAction('create', 'dispatch', dispatchId, `Nuevo despacho #${dNum} por $${total.toLocaleString()}`);
+            }
         });
 
         if (requireDispatchApproval) {
             notify(`El despacho #${dNum} ha sido enviado a sala de espera para aprobación del Administrador.`, 'info');
-            await logAction('create', 'dispatch', dispatchId, `Despacho #${dNum} pendiente de aprobación.`);
             return { success: true, id: dispatchId, pending: true };
         }
 
-        await logAction('create', 'dispatch', dispatchId, `Nuevo despacho #${dNum} por $${total.toLocaleString()}`);
         return { success: true, id: dispatchId };
     };
 
@@ -341,23 +403,28 @@ export const useSimulatedData = () => {
         const dispatch = await db.dispatches.get(dispatchId);
         if (!dispatch) return;
 
-        const newReturn: ProductReturn = {
-            id: `ret-${Date.now()}`,
-            dispatchId,
-            productId,
-            quantity: qty,
-            reason,
-            timestamp: new Date().toISOString()
-        };
+        await db.transaction('rw', [db.dispatches, db.auditLogs], async () => {
+            const newReturn: ProductReturn = {
+                id: generateId('ret'),
+                dispatchId,
+                productId,
+                quantity: qty,
+                reason,
+                timestamp: new Date().toISOString()
+            };
 
-        const existingReturns = dispatch.returns || [];
-        const newReturns = [...existingReturns, newReturn];
-        const totalSent = dispatch.items.reduce((acc, i) => acc + i.quantity, 0);
-        const totalReturned = newReturns.reduce((acc, r) => acc + r.quantity, 0);
+            const existingReturns = dispatch.returns || [];
+            const newReturns = [...existingReturns, newReturn];
+            const totalSent = dispatch.items.reduce((acc, i) => acc + i.quantity, 0);
+            const totalReturned = newReturns.reduce((acc, r) => acc + r.quantity, 0);
 
-        await db.dispatches.update(dispatchId, {
-            returns: newReturns,
-            status: totalReturned >= totalSent ? 'returned' : 'partial_return'
+            await db.dispatches.update(dispatchId, {
+                returns: newReturns,
+                status: totalReturned >= totalSent ? 'returned' : 'partial_return'
+            });
+
+            const reasonMsg = reason === 'damaged' ? 'Dañado/Merma' : reason === 'expired' ? 'Vencido' : reason === 'lost' ? 'Extraviado' : 'Buen Estado';
+            await logAction('update', 'dispatch', dispatchId, `Devolución parcial (${qty} unidades) de producto: ${productId}. Motivo: ${reasonMsg}`);
         });
     };
 
@@ -365,50 +432,105 @@ export const useSimulatedData = () => {
         const dispatch = await db.dispatches.get(id);
         if (!dispatch) return;
 
-        const fullReturns: ProductReturn[] = dispatch.items.map(item => ({
-            id: `ret-${Date.now()}-${item.productId}`,
-            dispatchId: id,
-            productId: item.productId,
-            quantity: item.quantity,
-            reason: 'good_condition',
-            timestamp: new Date().toISOString()
-        }));
+        await db.transaction('rw', [db.dispatches, db.auditLogs], async () => {
+            const fullReturns: ProductReturn[] = dispatch.items.map(item => ({
+                id: generateId(`ret-${item.productId}`),
+                dispatchId: id,
+                productId: item.productId,
+                quantity: item.quantity,
+                reason: 'good_condition',
+                timestamp: new Date().toISOString()
+            }));
 
-        await db.dispatches.update(id, {
-            status: 'returned',
-            returns: fullReturns
+            await db.dispatches.update(id, {
+                status: 'returned',
+                returns: fullReturns
+            });
+            await logAction('update', 'dispatch', id, `Devolución TOTAL del despacho #${dispatch.dispatchNumber}`);
         });
     };
 
     const handleAddSupplier = async (s: any) => {
-        await db.suppliers.add({ ...s, id: `sup-${Date.now()}`, totalVolume: 0, debt: 0 });
+        const id = s.id || generateId('sup');
+        await db.suppliers.add({ ...s, id, totalVolume: 0, debt: 0 });
+        return id;
     };
 
     const handleAddStore = async (st: any) => {
-        await db.stores.add({ ...st, id: `store-${Date.now()}`, totalDebt: 0, terminals: [], lastDispatch: '-' });
+        const id = st.id || generateId('store');
+        await db.stores.add({ ...st, id, totalDebt: 0, terminals: [], lastDispatch: '-' });
+        return id;
     };
 
     const handleAddProduct = async (p: any) => {
-        await db.products.add({ ...p, id: `prod-${Date.now()}`, stock: 0 });
+        const id = p.id || generateId('prod');
+        await db.products.add({ ...p, id, stock: 0 });
+        return id;
     };
 
     const handleAddInvoice = async (inv: any) => {
-        await db.invoices.add({
-            ...inv,
-            approvalStatus: requireInvoiceApproval ? 'pending' : 'approved'
-        });
-        if (requireInvoiceApproval) {
-            notify(`La factura #${inv.invoiceNumber} requiere aprobación del Administrador.`, 'info');
+        // VALIDACIÓN ANTI-DUPLICADO
+        const duplicado = invoices.find(
+            i => i.supplierId === inv.supplierId && 
+                 i.invoiceNumber.trim().toUpperCase() === inv.invoiceNumber.trim().toUpperCase() &&
+                 i.id !== inv.id
+        );
+
+        if (duplicado) {
+            notify(`ERROR DE INTEGRIDAD: Ya existe la factura #${inv.invoiceNumber} registrada para este proveedor. Carga rechazada.`, 'error');
+            return false;
         }
+
+        const invoiceId = inv.id || generateId('inv');
+        const approvalPending = requireInvoiceApproval;
+
+        await db.transaction('rw', [db.invoices, db.auditLogs, db.products], async () => {
+            await db.invoices.add({
+                ...inv,
+                id: invoiceId,
+                approvalStatus: approvalPending ? 'pending' : 'approved'
+            });
+            
+            await logAction('create', 'invoice', invoiceId, `Nueva factura de compra #${inv.invoiceNumber} registrada.`);
+
+            // Si no requiere aprobación, aplicar efectos de inmediato (Estilo Guaicaipuro)
+            if (!approvalPending) {
+                for (const item of inv.items) {
+                    const product = await db.products.get(item.productId);
+                    if (product) {
+                        const updates: any = {
+                            purchaseCost: item.unitCost,
+                            purchaseTax: item.unitTax,
+                            purchaseFreight: item.unitFreight,
+                        };
+                        if (item.newRetailPrice && item.newRetailPrice > 0) updates.retailPrice = item.newRetailPrice;
+                        if (item.newSupplyPrice && item.newSupplyPrice > 0) updates.supplyPrice = item.newSupplyPrice;
+                        
+                        await db.products.update(item.productId, updates);
+                        await logAction('update', 'product', item.productId, `Precios actualizados por Factura #${inv.invoiceNumber}`, product, updates);
+                    }
+                }
+            }
+        });
+
+        if (approvalPending) {
+            notify(`La factura #${inv.invoiceNumber} requiere aprobación del Administrador.`, 'info');
+        } else {
+            notify(`Factura #${inv.invoiceNumber} cargada y precios de catálogo actualizados.`, 'success');
+        }
+        return true;
     };
 
     const handleAddStorePayment = async (p: any) => {
-        const id = p.id || `sp-${Date.now()}`;
-        await db.storePayments.add({
-            ...p,
-            id,
-            printCount: 0,
-            approvalStatus: requirePaymentApproval ? 'pending' : 'approved'
+        const id = p.id || generateId('sp');
+        await db.transaction('rw', [db.storePayments, db.auditLogs], async () => {
+            await db.storePayments.add({
+                ...p,
+                id,
+                printCount: 0,
+                approvalStatus: requirePaymentApproval ? 'pending' : 'approved'
+            });
+            await logAction('create', 'store_payment', id, `Nuevo abono por $${p.amount.toLocaleString()} registrado.`);
         });
         if (requirePaymentApproval) {
             notify(`Abono por $${p.amount.toLocaleString()} requiere aprobación.`, 'info');
@@ -417,23 +539,32 @@ export const useSimulatedData = () => {
     };
 
     const handleAddPayment = async (p: any) => {
-        await db.supplierPayments.add({
-            ...p,
-            approvalStatus: requirePaymentApproval ? 'pending' : 'approved'
+        const id = p.id || generateId('pay');
+        await db.transaction('rw', [db.supplierPayments, db.auditLogs], async () => {
+            await db.supplierPayments.add({
+                ...p,
+                id,
+                approvalStatus: requirePaymentApproval ? 'pending' : 'approved'
+            });
+            await logAction('create', 'supplier_payment', id, `Pago a proveedor por $${p.amount.toLocaleString()} registrado.`);
         });
         if (requirePaymentApproval) {
             notify(`Pago de $${p.amount.toLocaleString()} requiere aprobación.`, 'info');
         }
     };
 
-    const logAction = async (action: any, entity: any, entityId: string, details: string) => {
+    const logAction = async (action: any, entity: any, entityId: string, details: string, oldValue?: any, newValue?: any) => {
         await db.auditLogs.add({
-            id: `log-${Date.now()}`,
+            id: generateId('log'),
             userId: currentUser?.id || 'system',
             userName: currentUser?.name || 'Sistema Automático',
             action,
             entity,
             entityId,
+            details,
+            timestamp: new Date().toISOString(),
+            oldValue,
+            newValue
         });
     };
 
@@ -456,43 +587,56 @@ export const useSimulatedData = () => {
     const handleAnularDispatch = async (id: string, isSiniestro: boolean = false) => {
         if (!await requestAdminApproval(isSiniestro ? 'REGISTRAR SINIESTRO (SAQUEO/ROBO)' : 'ANULAR DESPACHO')) return;
 
-        const dispatch = await db.dispatches.get(id);
-        if (!dispatch) return;
+        await db.transaction('rw', [db.dispatches, db.storePayments, db.invoices, db.auditLogs], async () => {
+            const dispatch = await db.dispatches.get(id);
+            if (!dispatch) return;
 
-        // Marcar despacho como anulado (borra deuda de sucursal)
-        await db.dispatches.update(id, { status: 'cancelled' });
+            // Marcar despacho como anulado (borra deuda de sucursal)
+            await db.dispatches.update(id, { status: 'cancelled' });
 
-        if (isSiniestro) {
-            // Si es SINIESTRO, el stock NO regresa al inventario.
-            // Para que no regrese, debemos sacarlo formalmente mediante NOTA DE BAJA
-            const docId = `baja-sin-${Date.now()}`;
-            await db.invoices.add({
-                id: docId,
-                supplierId: 'sup-local',
-                invoiceNumber: `BAJA-SIN-${dispatch.dispatchNumber}`,
-                date: new Date().toISOString().split('T')[0],
-                totalAmount: 0,
-                amountPaid: 0,
-                status: 'paid',
-                notes: `❌ PÉRDIDA POR SINIESTRO EN RUTA: Despacho #${dispatch.dispatchNumber} Saqueado/Robado.`,
-                items: dispatch.items.map(item => {
-                    const prod = products.find(p => p.id === item.productId);
-                    return {
-                        productId: item.productId,
-                        quantity: -item.quantity, // Salida definitiva
-                        unitCost: prod?.purchaseCost || 0,
-                        unitTax: 0,
-                        unitFreight: 0,
-                        totalItemCost: item.quantity * (prod?.purchaseCost || 0)
-                    };
-                })
-            });
-            await logAction('anular', 'dispatch', id, `SINIESTRO REGISTRADO: Despacho #${dispatch.dispatchNumber} marcado como pérdida total.`);
-        } else {
-            // Si es ERROR ADMINISTRATIVO, el stock regresa automáticamente 
-            // (porque quitamos el 'status: cancelled' del cálculo de exits en calculatedProducts)
-            await logAction('anular', 'dispatch', id, `Anulación por error: Despacho #${dispatch.dispatchNumber}. Stock retornado.`);
-        }
+            // CORRECCIÓN: Cancelar todos los pagos parciales asociados a este despacho
+            // para evitar que se contabilicen como ingresos sin deuda que respalde
+            const relatedPayments = await db.storePayments.filter(p => p.dispatchId === id).toArray();
+            for (const payment of relatedPayments) {
+                if (payment.status !== 'cancelled') {
+                    await db.storePayments.update(payment.id, { status: 'cancelled' });
+                    await logAction('anular', 'store_payment', payment.id, `Pago cancelado automáticamente por anulación del despacho #${dispatch.dispatchNumber}`);
+                }
+            }
+
+            if (isSiniestro) {
+                // Si es SINIESTRO, el stock NO regresa al inventario.
+                // Para que no regrese, debemos sacarlo formalmente mediante NOTA DE BAJA
+                const docId = generateId('baja-sin');
+                await db.invoices.add({
+                    id: docId,
+                    supplierId: 'sup-local',
+                    invoiceNumber: `BAJA-SIN-${dispatch.dispatchNumber}`,
+                    date: new Date().toISOString().split('T')[0],
+                    totalAmount: 0,
+                    amountPaid: 0,
+                    status: 'paid',
+                    notes: `❌ PÉRDIDA POR SINIESTRO EN RUTA: Despacho #${dispatch.dispatchNumber} Saqueado/Robado.`,
+                    items: dispatch.items.map(item => {
+                        const prod = products.find(p => p.id === item.productId);
+                        return {
+                            productId: item.productId,
+                            quantity: -item.quantity, // Salida definitiva
+                            unitCost: prod?.purchaseCost || 0,
+                            unitTax: 0,
+                            unitFreight: 0,
+                            totalItemCost: item.quantity * (prod?.purchaseCost || 0)
+                        };
+                    })
+                });
+                await logAction('anular', 'dispatch', id, `SINIESTRO REGISTRADO: Despacho #${dispatch.dispatchNumber} marcado como pérdida total.`);
+            } else {
+                // Si es ERROR ADMINISTRATIVO, el stock regresa automáticamente
+                // (porque quitamos el 'status: cancelled' del cálculo de exits en calculatedProducts)
+                const paymentsCancelled = relatedPayments.filter(p => p.status === 'cancelled').length;
+                await logAction('anular', 'dispatch', id, `Anulación por error: Despacho #${dispatch.dispatchNumber}. Stock retornado.${paymentsCancelled > 0 ? ` ${paymentsCancelled} pago(s) cancelado(s) automáticamente.` : ''}`);
+            }
+        });
     };
 
     const handleAnularPayment = async (id: string) => {
@@ -519,6 +663,9 @@ export const useSimulatedData = () => {
         payments,
         storePayments,
         auditLogs,
+        quickAccessConfig,
+        pinnedBrands,
+        showBrandFilter,
         currentUser,
         users: allUsers,
         storeName,
@@ -546,6 +693,18 @@ export const useSimulatedData = () => {
             await db.settings.put({ id, value });
             notify('Ajuste administrador actualizado', 'success');
         },
+        handleUpdateQuickAccessConfig: async (config: string[]) => {
+            await db.settings.put({ id: 'quickAccessConfig', value: config });
+            notify('Panel de accesos actualizado', 'success');
+        },
+        handleUpdatePinnedBrands: async (brands: string[]) => {
+            await db.settings.put({ id: 'pinnedBrands', value: brands });
+            notify('Marcas favoritas actualizadas', 'success');
+        },
+        handleUpdateShowBrandFilter: async (show: boolean) => {
+            await db.settings.put({ id: 'showBrandFilter', value: show });
+            notify(`Filtro de marcas ${show ? 'habilitado' : 'deshabilitado'}`, 'success');
+        },
         handleApproveDocument: async (entity: string, id: string) => {
             const authData = {
                 approvalStatus: 'approved',
@@ -553,28 +712,59 @@ export const useSimulatedData = () => {
                 authorizedAt: new Date().toISOString()
             } as any;
 
-            if (entity === 'dispatch') await db.dispatches.update(id, authData);
-            if (entity === 'payment') await db.supplierPayments.update(id, authData);
-            if (entity === 'store_payment') await db.storePayments.update(id, authData);
-            if (entity === 'invoice') await db.invoices.update(id, authData);
+            await db.transaction('rw', [db.dispatches, db.supplierPayments, db.storePayments, db.invoices, db.auditLogs, db.products], async () => {
+                if (entity === 'dispatch') await db.dispatches.update(id, authData);
+                if (entity === 'payment') await db.supplierPayments.update(id, authData);
+                if (entity === 'store_payment') await db.storePayments.update(id, authData);
+                
+                if (entity === 'invoice') {
+                    await db.invoices.update(id, authData);
+                    const inv = await db.invoices.get(id);
+                    if (inv) {
+                        // APLICAR CAMBIOS DE PRECIOS AL CATÁLOGO (ESTILO GUAICAIPURO)
+                        for (const item of inv.items) {
+                            const product = await db.products.get(item.productId);
+                            if (product) {
+                                const updates: any = {
+                                    purchaseCost: item.unitCost,
+                                    purchaseTax: item.unitTax,
+                                    purchaseFreight: item.unitFreight,
+                                };
+                                if (item.newRetailPrice && item.newRetailPrice > 0) updates.retailPrice = item.newRetailPrice;
+                                if (item.newSupplyPrice && item.newSupplyPrice > 0) updates.supplyPrice = item.newSupplyPrice;
+                                
+                                await db.products.update(item.productId, updates);
+                                await logAction('update', 'product', item.productId, `Catálogo actualizado por aprobación de Factura #${inv.invoiceNumber}`, product, updates);
+                            }
+                        }
+                    }
+                }
 
-            await logAction('update', entity as any, id, `Documento aprobado por ${currentUser?.name || 'Administrador'}`);
+                await logAction('update', entity as any, id, `Documento aprobado por ${currentUser?.name || 'Administrador'}`);
+            });
             notify('Documento aprobado correctamente', 'success');
         },
         handleRejectDocument: async (entity: string, id: string, reason: string) => {
-            if (entity === 'dispatch') await db.dispatches.update(id, { approvalStatus: 'rejected', status: 'cancelled' });
-            if (entity === 'payment') await db.supplierPayments.update(id, { approvalStatus: 'rejected', status: 'cancelled' } as any);
-            if (entity === 'store_payment') await db.storePayments.update(id, { approvalStatus: 'rejected', status: 'cancelled' } as any);
-            if (entity === 'invoice') await db.invoices.update(id, { approvalStatus: 'rejected' });
-
-            await logAction('anular', entity as any, id, `Documento rechazado: ${reason}`);
+            // Need to wrap in transaction dynamically based on entity, or simply enclose both
+            await db.transaction('rw', [db.dispatches, db.supplierPayments, db.storePayments, db.invoices, db.auditLogs], async () => {
+                if (entity === 'dispatch') await db.dispatches.update(id, { approvalStatus: 'rejected', status: 'cancelled' });
+                if (entity === 'payment') await db.supplierPayments.update(id, { approvalStatus: 'rejected', status: 'cancelled' } as any);
+                if (entity === 'store_payment') await db.storePayments.update(id, { approvalStatus: 'rejected', status: 'cancelled' } as any);
+                if (entity === 'invoice') await db.invoices.update(id, { approvalStatus: 'rejected' });
+                await logAction('anular', entity as any, id, `Documento rechazado: ${reason}`);
+            });
             notify('Documento rechazado/anulado', 'warning');
         },
-        handleAddUser: async (u: any) => await db.users.add({ ...u, id: `u-${Date.now()}` }),
+        handleAddUser: async (u: any) => await db.users.add({ ...u, id: generateId('u') }),
         handleDeleteUser: async (id: string) => await db.users.delete(id),
         handleUpdateUser: async (id: string, updates: any) => await db.users.update(id, updates),
         handleAddSupplier,
-        handleUpdateSupplier: () => { },
+        handleUpdateSupplier: async (id: string, updates: any) => {
+            const oldSupplier = await db.suppliers.get(id);
+            await db.suppliers.update(id, updates);
+            await logAction('update', 'supplier', id, `Actualización de proveedor`, oldSupplier, updates);
+            notify('Proveedor actualizado correctamente', 'success');
+        },
         handleDeleteSupplier: async (id: string) => {
             const supplier = calculatedSuppliers.find(s => s.id === id);
             if (!supplier) return;
@@ -594,8 +784,10 @@ export const useSimulatedData = () => {
         },
         handleAddStore,
         handleUpdateStore: async (id: string, updates: any) => {
+            const oldStore = await db.stores.get(id);
             await db.stores.update(id, updates);
-            await logAction('update', 'store', id, `Actualización de sucursal: ${JSON.stringify(updates)}`);
+            await logAction('update', 'store', id, `Actualización de sucursal`, oldStore, updates);
+            notify('Sucursal actualizada correctamente', 'success');
         },
         handleDeleteStore: async (id: string) => {
             const store = calculatedStores.find(s => s.id === id);
@@ -615,7 +807,12 @@ export const useSimulatedData = () => {
             notify('Sucursal eliminada correctamente', 'success');
         },
         handleAddProduct,
-        handleUpdateProduct: async (id: string, updates: any) => await db.products.update(id, updates),
+        handleUpdateProduct: async (id: string, updates: any) => {
+            const oldProduct = await db.products.get(id);
+            await db.products.update(id, updates);
+            await logAction('update', 'product', id, `Actualización de producto`, oldProduct, updates);
+            notify('Producto actualizado correctamente', 'success');
+        },
         handleDeleteProduct: async (id: string) => {
             const product = calculatedProducts.find(p => p.id === id);
             if (!product) return;

@@ -151,6 +151,10 @@ export interface Invoice {
     unitTax: number;
     unitFreight: number;
     totalItemCost: number;
+    batch?: string;
+    expirationDate?: string;
+    newRetailPrice?: number;
+    newSupplyPrice?: number;
   }[];
   totalAmount: number;
   amountPaid: number;
@@ -188,6 +192,8 @@ export interface AuditLog {
   entityId: string;
   details: string;
   timestamp: string;
+  oldValue?: any;
+  newValue?: any;
 }
 
 export interface DashboardMetrics {

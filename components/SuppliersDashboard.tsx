@@ -13,7 +13,7 @@ interface SuppliersDashboardProps {
     onAddSupplier: (s: any) => void;
     onUpdateSupplier: (id: string, updates: any) => void;
     onDeleteSupplier: (id: string) => void;
-    onAddInvoice: (i: any) => void;
+    onAddInvoice: (i: any) => Promise<boolean | void>;
     onAddPayment: (p: any) => void;
     onAddProduct: (p: any) => void;
     onUpdateProduct: (id: string, updates: any) => void;
@@ -32,6 +32,11 @@ interface InvoiceItemForm {
     manualName?: string;
     manualBrand?: string;
     manualPresentation?: string;
+    brand?: string; // Nuevo campo para marcar el producto
+    batch?: string;
+    expirationDate?: string;
+    newRetailPrice?: number;
+    newSupplyPrice?: number;
 }
 
 export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
@@ -71,7 +76,10 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                 const product = products.find(p => p.id === item.productId);
                 return { name: product?.name || 'Producto', quantity: item.quantity, unitPrice: item.unitCost };
             }),
-            generatedBy: currentUser?.name,
+            businessName: 'Inversiones Guaicaipuro C.A.', // Nombre corporativo solicitado
+            businessTaxId: 'J-50123456-7',
+            generatedBy: currentUser?.name || 'ADMIN',
+            receivedBy: supplier?.name, // El proveedor es quien entrega/tira la factura
             userRole: currentUser?.roles?.join(', '),
             authorizedBy: invoice.authorizedBy,
             dueDate: invoice.dueDate ? (invoice.dueDate.includes('-') ? invoice.dueDate.split('-').reverse().join('/') : invoice.dueDate) : undefined
@@ -99,7 +107,10 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                     unitPrice: it.unitCost
                 };
             }),
-            generatedBy: currentUser?.name,
+            businessName: 'Inversiones Guaicaipuro C.A.',
+            businessTaxId: 'J-50123456-7',
+            generatedBy: currentUser?.name || 'TESORERÍA', // Quien emite el pago
+            receivedBy: supplier?.name, // Quien recibe el cobro
             userRole: currentUser?.roles?.join(', '),
             authorizedBy: payment.authorizedBy
         };
@@ -194,7 +205,6 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
             await new Promise(resolve => setTimeout(resolve, 500));
 
             await onAddPayment({
-                id: `pay-${Date.now()}`,
                 supplierId: s.id,
                 invoiceId: paymentForm.invoiceId,
                 invoiceNumber: inv.invoiceNumber,
@@ -226,7 +236,17 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
     const handleAddInvoiceItem = () => {
         setInvoiceForm({
             ...invoiceForm,
-            items: [...invoiceForm.items, { productId: products[0]?.id || '', quantity: 1, unitCost: 0, isManual: false }]
+            items: [...invoiceForm.items, { 
+                productId: products[0]?.id || '', 
+                quantity: 1, 
+                unitCost: 0, 
+                isManual: false,
+                brand: products[0]?.brand || '',
+                batch: '',
+                expirationDate: '',
+                newRetailPrice: 0,
+                newSupplyPrice: 0
+            }]
         });
     };
 
@@ -243,21 +263,42 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
             return;
         }
 
+        // VALIDACIÓN DE PRECIOS SEGÚN REGLAS "GUAICAIPURO"
+        for (const item of invoiceForm.items) {
+            if (!item.isManual) {
+                const p = products.find(prod => prod.id === item.productId);
+                if (p && item.newRetailPrice && item.newRetailPrice < p.retailPrice) {
+                    notify(`El precio de ${p.name} (${item.newRetailPrice}) no puede ser menor al actual (${p.retailPrice}).`, 'error');
+                    return;
+                }
+            }
+            if (item.newRetailPrice && item.newRetailPrice < item.unitCost) {
+                notify(`El precio de venta no puede ser menor al costo (${item.unitCost}).`, 'error');
+                return;
+            }
+        }
+
         const processedItems = await Promise.all(invoiceForm.items.map(async (item) => {
-            if (item.isManual && item.manualName) {
-                const newProdId = `p-auto-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+            const originalProduct = products.find(p => p.id === item.productId);
+            const isDifferentBrand = originalProduct && item.brand && originalProduct.brand !== item.brand; // Revisa si el usuario cambió la marca
+
+            // REGLA: Si la marca es distinta, se trata como un producto nuevo (Nueva variante)
+            if ((item.isManual && item.manualName) || (originalProduct && item.brand && originalProduct.brand !== item.brand)) {
+                const newProdId = `p-auto-${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 10)}`;
+                const baseInfo = originalProduct || { name: item.manualName, presentation: item.manualPresentation || 'Unidad' };
+                
                 const newProduct = {
                     id: newProdId,
-                    name: item.manualName,
-                    brand: item.manualBrand,
-                    presentation: item.manualPresentation,
+                    name: baseInfo.name,
+                    brand: item.brand || item.manualBrand || 'Genérica',
+                    presentation: item.manualPresentation || baseInfo.presentation || 'Unidad',
                     supplierId: s.id,
                     supplierName: s.name,
                     purchaseCost: item.unitCost,
                     purchaseTax: 0,
                     purchaseFreight: 0,
-                    supplyPrice: Math.ceil(item.unitCost * 1.3),
-                    retailPrice: Math.ceil(item.unitCost * 1.6),
+                    supplyPrice: item.newSupplyPrice || Math.ceil(item.unitCost * 1.3),
+                    retailPrice: item.newRetailPrice || Math.ceil(item.unitCost * 1.6),
                     imageUrl: 'https://placehold.co/400x400/0D254C/FFFFFF/png?text=Nuevo+Item',
                     color: '#3b82f6',
                     stock: 0
@@ -269,23 +310,31 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                     unitCost: item.unitCost,
                     unitTax: 0,
                     unitFreight: 0,
-                    totalItemCost: item.quantity * item.unitCost
+                    totalItemCost: item.quantity * item.unitCost,
+                    batch: item.batch,
+                    expirationDate: item.expirationDate,
+                    newRetailPrice: item.newRetailPrice,
+                    newSupplyPrice: item.newSupplyPrice
                 };
             }
+
             return {
                 productId: item.productId,
                 quantity: item.quantity,
                 unitCost: item.unitCost,
                 unitTax: 0,
                 unitFreight: 0,
-                totalItemCost: item.quantity * item.unitCost
+                totalItemCost: item.quantity * item.unitCost,
+                batch: item.batch,
+                expirationDate: item.expirationDate,
+                newRetailPrice: item.newRetailPrice,
+                newSupplyPrice: item.newSupplyPrice
             };
         }));
 
         const total = processedItems.reduce((acc, item) => acc + item.totalItemCost, 0);
 
-        onAddInvoice({
-            id: `inv-${Date.now()}`,
+        const success = await onAddInvoice({
             supplierId: s.id,
             invoiceNumber: invoiceForm.invoiceNumber,
             date: invoiceForm.date,
@@ -297,11 +346,15 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
             invoiceImageUrl: invoiceForm.invoiceImageUrl,
             authorizedBy: isAdmin ? currentUser?.name : undefined
         });
-        setView('statement');
+
+        if (success !== false) {
+            setView('statement');
+            setInvoiceForm({ invoiceNumber: '', date: new Date().toISOString().split('T')[0], dueDate: '', notes: '', invoiceImageUrl: '', items: [] });
+        }
     };
 
     const renderSupplierForm = () => (
-        <div className="max-w-4xl mx-auto bg-white rounded-[40px] shadow-2xl overflow-hidden border-2 border-gray-100 animate-in slide-in-from-bottom-10">
+        <div className="max-w-4xl mx-auto bg-white rounded-md shadow-2xl overflow-hidden border-2 border-gray-100 animate-in slide-in-from-bottom-10">
             <div className="p-10 border-b flex justify-between items-center bg-gray-50/50">
                 <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">{view === 'add' ? 'Nuevo Proveedor' : 'Editar Proveedor'}</h3>
                 <button onClick={() => setView('list')} className="text-gray-400 hover:text-red-500 transition-colors">
@@ -311,22 +364,22 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
             <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase text-gray-400 block tracking-widest">Razón Social</label>
-                    <input type="text" value={supplierForm.name} onChange={e => setSupplierForm({ ...supplierForm, name: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none" />
+                    <input type="text" value={supplierForm.name} onChange={e => setSupplierForm({ ...supplierForm, name: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-md font-bold outline-none" />
                 </div>
                 <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase text-gray-400 block tracking-widest">ID Fiscal (RIF)</label>
-                    <input type="text" value={supplierForm.taxId} onChange={e => setSupplierForm({ ...supplierForm, taxId: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none" />
+                    <input type="text" value={supplierForm.taxId} onChange={e => setSupplierForm({ ...supplierForm, taxId: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-md font-bold outline-none" />
                 </div>
             </div>
             <div className="p-10 bg-gray-50 flex gap-4">
                 <button onClick={() => setView('list')} className="flex-1 py-4 font-black uppercase text-xs text-gray-400">Cancelar</button>
-                <button onClick={handleSaveSupplier} className="flex-1 bg-brand-primary text-white py-4 rounded-2xl font-black uppercase text-xs shadow-xl">Guardar Proveedor</button>
+                <button onClick={handleSaveSupplier} className="flex-1 bg-[#F97316] text-white py-4 rounded-md font-black uppercase text-xs shadow-xl">Guardar Proveedor</button>
             </div>
         </div>
     );
 
     const renderInvoiceForm = () => (
-        <div className="max-w-5xl mx-auto bg-white rounded-[40px] shadow-2xl overflow-hidden border-2 border-gray-100 animate-in slide-in-from-bottom-10">
+        <div className="max-w-5xl mx-auto bg-white rounded-md shadow-2xl overflow-hidden border-2 border-gray-100 animate-in slide-in-from-bottom-10">
             <div className="p-10 border-b flex justify-between items-center bg-gray-900 text-white">
                 <div>
                     <h3 className="text-3xl font-black uppercase tracking-tighter">Cargar Factura de Compra</h3>
@@ -340,11 +393,11 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                 <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Nro de Factura</label>
-                        <input type="text" value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-black text-brand-primary outline-none" placeholder="001-XXXX" />
+                        <input type="text" value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-md font-black text-brand-primary outline-none" placeholder="001-XXXX" />
                     </div>
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Foto de Factura</label>
-                        <div className="relative group cursor-pointer h-[58px] bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center hover:border-brand-primary transition-all">
+                        <div className="relative group cursor-pointer h-[58px] bg-gray-50 border-2 border-dashed border-gray-200 rounded-md flex items-center justify-center hover:border-brand-primary transition-all">
                             <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
                                 setInvoiceForm({ ...invoiceForm, invoiceImageUrl: 'https://placehold.co/600x800/EEE/666?text=Factura+Escaneada' });
                                 notify('Foto de factura cargada (Simulado)', 'success');
@@ -356,7 +409,7 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                 <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Fecha de Emisión</label>
-                        <input type="date" value={invoiceForm.date} onChange={e => setInvoiceForm({ ...invoiceForm, date: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none" />
+                        <input type="date" value={invoiceForm.date} onChange={e => setInvoiceForm({ ...invoiceForm, date: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-md font-bold outline-none" />
                     </div>
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-red-400 tracking-widest">Fecha Límite de Pago (Crédito)</label>
@@ -364,27 +417,27 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                             type="date"
                             value={invoiceForm.dueDate || ''}
                             onChange={e => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })}
-                            className="w-full bg-red-50 border-2 border-red-100 p-4 rounded-2xl font-bold outline-none text-red-900 focus:border-red-300"
+                            className="w-full bg-red-50 border-2 border-red-100 p-4 rounded-md font-bold outline-none text-red-900 focus:border-red-300"
                         />
                     </div>
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Notas / Observaciones</label>
-                    <textarea value={invoiceForm.notes} onChange={e => setInvoiceForm({ ...invoiceForm, notes: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none h-24 resize-none" placeholder="..." />
+                    <textarea value={invoiceForm.notes} onChange={e => setInvoiceForm({ ...invoiceForm, notes: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-md font-bold outline-none h-24 resize-none" placeholder="..." />
                 </div>
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h4 className="font-black uppercase text-[10px] tracking-widest text-gray-400">Ítems de Factura</h4>
                         <div className="flex gap-3">
-                            <button onClick={handleAddInvoiceItem} className="bg-gray-100 hover:bg-brand-primary hover:text-white text-gray-600 px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-all shadow-sm">+ Inventario</button>
-                            <button onClick={handleAddManualItem} className="bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-600 px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-all border border-amber-100 shadow-sm">+ Manual</button>
+                            <button onClick={handleAddInvoiceItem} className="bg-gray-100 hover:bg-[#F97316] hover:text-white text-gray-600 px-4 py-2 rounded-md font-black text-[10px] uppercase transition-all shadow-sm">+ Inventario</button>
+                            <button onClick={handleAddManualItem} className="bg-orange-50 hover:bg-[#F97316] hover:text-white text-[#F97316] px-4 py-2 rounded-md font-black text-[10px] uppercase transition-all border border-orange-100 shadow-sm">+ Manual</button>
                         </div>
                     </div>
                     <div className="space-y-4">
                         {invoiceForm.items.map((item, idx) => (
-                            <div key={idx} className="bg-gray-50 p-6 rounded-3xl relative group border-2 border-transparent hover:border-brand-primary/20 transition-all space-y-4">
+                            <div key={idx} className="bg-gray-50 p-6 rounded-md relative group border-2 border-transparent hover:border-brand-primary/20 transition-all space-y-4">
                                 <div className="grid grid-cols-12 gap-4 items-end">
-                                    <div className="col-span-12 md:col-span-5">
+                                    <div className="col-span-12 md:col-span-4">
                                         <div className="flex justify-between items-center mb-1">
                                             <label className="text-[9px] font-black uppercase text-gray-400">
                                                 {item.isManual ? '📝 Nuevo Producto' : '📦 Producto en Lista'}
@@ -398,7 +451,7 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                                                     }
                                                     setInvoiceForm({ ...invoiceForm, items: newItems });
                                                 }}
-                                                className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full border ${item.isManual ? 'bg-amber-100 text-amber-600 border-amber-200' : 'bg-blue-100 text-blue-600 border-blue-200'}`}
+                                                className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-sm border ${item.isManual ? 'bg-orange-100 text-[#F97316] border-orange-200' : 'bg-blue-100 text-blue-600 border-blue-200'}`}
                                             >
                                                 {item.isManual ? 'Cambiar a Lista' : 'Cambiar a Manual'}
                                             </button>
@@ -408,41 +461,130 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                                                 const newItems = [...invoiceForm.items];
                                                 newItems[idx].manualName = e.target.value;
                                                 setInvoiceForm({ ...invoiceForm, items: newItems });
-                                            }} className="w-full bg-white border-2 border-amber-200 p-3 rounded-xl font-bold text-sm outline-none" />
+                                            }} className="w-full bg-white border-2 border-orange-200 p-3 rounded-md font-bold text-sm outline-none" />
                                         ) : (
                                             <select value={item.productId} onChange={e => {
                                                 const newItems = [...invoiceForm.items];
-                                                newItems[idx].productId = e.target.value;
+                                                const prodId = e.target.value;
+                                                newItems[idx].productId = prodId;
+                                                const p = products.find(prod => prod.id === prodId);
+                                                if (p) {
+                                                    newItems[idx].brand = p.brand;
+                                                    newItems[idx].newRetailPrice = p.retailPrice;
+                                                    newItems[idx].newSupplyPrice = p.supplyPrice;
+                                                }
                                                 setInvoiceForm({ ...invoiceForm, items: newItems });
-                                            }} className="w-full bg-white border-2 border-gray-100 p-3 rounded-xl font-bold text-sm outline-none">
+                                            }} className="w-full bg-white border-2 border-gray-100 p-3 rounded-md font-bold text-sm outline-none">
                                                 <option value="" disabled>Seleccione...</option>
                                                 {products.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                    <option key={p.id} value={p.id}>{p.name} {p.brand ? `[${p.brand}]` : ''} - PVP: ${p.retailPrice}</option>
                                                 ))}
                                             </select>
                                         )}
                                     </div>
+                                    <div className="col-span-12 md:col-span-3">
+                                        <label className="text-[9px] font-black text-gray-400 mb-1 block">Marca (Brand)</label>
+                                        <input type="text" value={item.brand} onChange={e => {
+                                            const newItems = [...invoiceForm.items];
+                                            newItems[idx].brand = e.target.value;
+                                            setInvoiceForm({ ...invoiceForm, items: newItems });
+                                        }} placeholder="Marca..." className="w-full bg-white border-2 border-gray-100 p-3 rounded-md font-bold text-sm outline-none" />
+                                        {!item.isManual && item.brand && products.find(p => p.id === item.productId)?.brand !== item.brand && (
+                                            <p className="text-[7px] font-black text-amber-600 uppercase mt-1">⚠️ MARCA DISTINTA: Generará producto nuevo</p>
+                                        )}
+                                    </div>
                                     <div className="col-span-4 md:col-span-2">
-                                        <label className="text-[9px] font-black text-gray-400 mb-1 block text-center">Cant.</label>
+                                        <label className="text-[9px] font-black text-gray-400 mb-1 block text-right">Cant.</label>
                                         <input type="number" value={item.quantity} onChange={e => {
                                             const newItems = [...invoiceForm.items];
                                             newItems[idx].quantity = Number(e.target.value);
                                             setInvoiceForm({ ...invoiceForm, items: newItems });
-                                        }} className="w-full bg-white border border-gray-200 p-3 rounded-xl font-black text-center" />
+                                        }} className="w-full bg-white border-2 border-gray-100 p-3 rounded-md font-black text-center outline-none" />
                                     </div>
-                                    <div className="col-span-4 md:col-span-2">
-                                        <label className="text-[9px] font-black text-gray-400 mb-1 block text-right">Costo ($)</label>
+                                    <div className="col-span-8 md:col-span-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[9px] font-black text-gray-400 block text-right">Costo Unitario ($)</label>
+                                            <button onClick={() => {
+                                                const newItems = invoiceForm.items.filter((_, i) => i !== idx);
+                                                setInvoiceForm({ ...invoiceForm, items: newItems });
+                                            }} className="text-red-300 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
+                                        </div>
                                         <input type="number" step="0.01" value={item.unitCost} onChange={e => {
                                             const newItems = [...invoiceForm.items];
                                             newItems[idx].unitCost = Number(e.target.value);
+                                            if (newItems[idx].unitCost > 0) {
+                                                newItems[idx].newSupplyPrice = Math.ceil(newItems[idx].unitCost * 1.30);
+                                                newItems[idx].newRetailPrice = Math.ceil(newItems[idx].unitCost * 1.60);
+                                            }
                                             setInvoiceForm({ ...invoiceForm, items: newItems });
-                                        }} className="w-full bg-white border border-gray-200 p-3 rounded-xl font-black text-right" />
+                                        }} className="w-full bg-white border-2 border-gray-200 p-3 rounded-md font-black text-right outline-none" />
                                     </div>
-                                    <div className="col-span-4 md:col-span-1 flex justify-end">
-                                        <button onClick={() => {
-                                            const newItems = invoiceForm.items.filter((_, i) => i !== idx);
+                                </div>
+
+                                {/* CAMPOS DE DETALLE PROFESIONAL (KEYMASTER) */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-gray-100 items-end">
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-gray-400">Lote (Batch)</label>
+                                        <input type="text" value={item.batch} onChange={e => {
+                                            const newItems = [...invoiceForm.items];
+                                            newItems[idx].batch = e.target.value;
                                             setInvoiceForm({ ...invoiceForm, items: newItems });
-                                        }} className="p-3 text-red-300 hover:text-red-500 transition-colors"><TrashIcon className="w-4 h-4" /></button>
+                                        }} placeholder="Ej: L-2024" className="w-full bg-white border border-gray-100 p-2 rounded-lg text-[10px] font-bold outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-gray-400">Vencimiento</label>
+                                        <input type="date" value={item.expirationDate} onChange={e => {
+                                            const newItems = [...invoiceForm.items];
+                                            newItems[idx].expirationDate = e.target.value;
+                                            setInvoiceForm({ ...invoiceForm, items: newItems });
+                                        }} className="w-full bg-white border border-gray-100 p-2 rounded-lg text-[10px] font-bold outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-indigo-400">Nuevo Costo Despacho</label>
+                                        <input type="number" value={item.newSupplyPrice || 0} onChange={e => {
+                                            const newItems = [...invoiceForm.items];
+                                            newItems[idx].newSupplyPrice = Number(e.target.value);
+                                            setInvoiceForm({ ...invoiceForm, items: newItems });
+                                        }} className="w-full bg-white border-2 border-indigo-100 p-2 rounded-lg text-[10px] font-black text-indigo-700 outline-none" />
+                                    </div>
+                                    <div className="space-y-1 relative">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[8px] font-black uppercase text-emerald-400">Nuevo PVP</label>
+                                            <div className="flex gap-1">
+                                                {(() => {
+                                                    const p = products.find(prod => prod.id === item.productId);
+                                                    const currentPVP = p?.retailPrice || 0;
+                                                    const newVal = item.newRetailPrice || 0;
+                                                    if (newVal > currentPVP && currentPVP > 0) return <span className="text-[7px] font-black text-emerald-600 bg-emerald-50 px-1 rounded-sm">▲ SUBIÓ</span>;
+                                                    if (newVal === currentPVP && currentPVP > 0) return <span className="text-[7px] font-black text-gray-400 bg-gray-50 px-1 rounded-sm">= IGUAL</span>;
+                                                    if (newVal < currentPVP && currentPVP > 0) return <span className="text-[7px] font-black text-red-600 bg-red-50 px-1 rounded-sm">▼ BAJÓ (BLOQUEADO)</span>;
+                                                    return null;
+                                                })()}
+                                            </div>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            value={item.newRetailPrice || 0} 
+                                            onChange={e => {
+                                                const val = Number(e.target.value);
+                                                const newItems = [...invoiceForm.items];
+                                                newItems[idx].newRetailPrice = val;
+                                                setInvoiceForm({ ...invoiceForm, items: newItems });
+                                            }} 
+                                            className={`w-full bg-white border-2 p-2 rounded-lg text-[10px] font-black outline-none ${
+                                                (() => {
+                                                    const p = products.find(prod => prod.id === item.productId);
+                                                    const currentPVP = p?.retailPrice || 0;
+                                                    const newVal = item.newRetailPrice || 0;
+                                                    if (newVal < currentPVP && currentPVP > 0) return 'border-red-400 text-red-600';
+                                                    if (newVal < item.unitCost) return 'border-orange-400 text-orange-600';
+                                                    return 'border-emerald-100 text-emerald-700';
+                                                })()
+                                            }`} 
+                                        />
+                                        {item.newRetailPrice !== undefined && item.newRetailPrice < item.unitCost && (
+                                            <p className="text-[7px] font-black text-red-500 uppercase mt-1">⚠️ MENOR AL COSTO</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -453,9 +595,9 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
             <div className="p-10 bg-gray-900 flex justify-between items-center">
                 <div className="text-white">
                     <p className="text-[10px] font-black uppercase text-gray-500">Total Facturado</p>
-                    <p className="text-4xl font-black text-brand-accent">${invoiceForm.items.reduce((acc, i) => acc + (i.quantity * i.unitCost), 0).toLocaleString()}</p>
+                    <p className="text-4xl font-black text-[#F97316]">${invoiceForm.items.reduce((acc, i) => acc + (i.quantity * i.unitCost), 0).toLocaleString()}</p>
                 </div>
-                <button onClick={handleSaveInvoice} className="bg-brand-primary text-white px-12 py-5 rounded-2xl font-black uppercase text-xs shadow-2xl">Confirmar Factura</button>
+                <button onClick={handleSaveInvoice} className="bg-[#F97316] text-white px-12 py-5 rounded-md font-black uppercase text-xs shadow-2xl">Confirmar Factura</button>
             </div>
         </div>
     );
@@ -480,20 +622,20 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 no-print">
-                    <div className="bg-slate-900 text-white p-6 rounded-lg shadow-sm md:col-span-2 border-l-8 border-red-600">
+                    <div className="bg-slate-900 text-white p-6 rounded-md shadow-sm md:col-span-2 border-l-8 border-[#F97316]">
                         <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Balance Deudor Consolidado</p>
                         <p className="text-4xl font-black mt-1">${s.debt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
-                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col justify-center items-center">
+                    <div className="bg-white p-6 rounded-md shadow-sm border border-gray-200 flex flex-col justify-center items-center">
                         <p className="text-[10px] font-black uppercase text-gray-400">Volumen de Compra</p>
                         <p className="text-xl font-black text-gray-800">${(s.totalVolume || 0).toLocaleString()}</p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-lg flex flex-col gap-2 border border-gray-200">
-                        <button onClick={() => { setInvoiceForm({ invoiceNumber: '', date: new Date().toISOString().split('T')[0], dueDate: '', notes: '', invoiceImageUrl: '', items: [] }); setView('invoice'); }} className="flex-1 bg-indigo-700 text-white rounded font-black uppercase text-[10px] tracking-widest">Cargar Factura</button>
+                    <div className="bg-gray-50 p-3 rounded-md flex flex-col gap-2 border border-gray-200">
+                        <button onClick={() => { setInvoiceForm({ invoiceNumber: '', date: new Date().toISOString().split('T')[0], dueDate: '', notes: '', invoiceImageUrl: '', items: [] }); setView('invoice'); }} className="flex-1 bg-slate-900 text-white rounded-sm font-black uppercase text-[10px] tracking-widest hover:bg-[#F97316]">Cargar Factura</button>
                         {isAdmin ? (
-                            <button onClick={() => setShowPaymentModal(true)} className="flex-1 bg-emerald-600 text-white rounded font-black uppercase text-[10px] tracking-widest transition-all">Registrar Pago</button>
+                            <button onClick={() => setShowPaymentModal(true)} className="flex-1 bg-[#F97316] text-white rounded-sm font-black uppercase text-[10px] tracking-widest transition-all">Registrar Pago</button>
                         ) : (
-                            <div className="flex-1 bg-gray-200 text-gray-400 rounded font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-1 cursor-not-allowed">
+                            <div className="flex-1 bg-gray-200 text-gray-400 rounded-sm font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-1 cursor-not-allowed">
                                 <ActivityIcon className="w-3 h-3" /> Solo Admin
                             </div>
                         )}
@@ -516,13 +658,13 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                             {history.map((h: any, idx: number) => (
                                 <tr key={h?.id} className="hover:bg-slate-50 group transition-colors">
                                     <td className="px-10 py-7 text-center">
-                                        <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded border border-gray-200 text-[10px] font-black text-gray-400">{idx + 1}</div>
+                                        <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-sm border border-gray-200 text-[10px] font-black text-gray-400">{idx + 1}</div>
                                     </td>
                                     <td className="px-10 py-7">
                                         <span className="font-black text-slate-900 text-xs">{h.date}</span>
                                     </td>
                                     <td className="px-10 py-7">
-                                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${h.type === 'Factura' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                        <span className={`px-4 py-1.5 rounded-sm text-[10px] font-black uppercase ${h.type === 'Factura' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
                                             {h.type} #{h.invoiceNumber || h.reference}
                                         </span>
                                     </td>
@@ -531,8 +673,8 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                                     </td>
                                     <td className="px-10 py-7 text-center">
                                         <div className="flex justify-center gap-2">
-                                            <button onClick={() => h.type === 'Factura' ? setShowInvoiceDetail(h) : setShowPaymentDetail(h)} className="p-2 bg-slate-100 text-slate-400 hover:bg-brand-primary hover:text-white rounded transition-colors"><ViewIcon className="w-4 h-4" /></button>
-                                            <button onClick={() => h.type === 'Factura' ? handlePrintThermal(getInvoiceDocData(h)) : handlePrintThermal(getSupplierPaymentDocData(h))} className="p-2 bg-slate-100 text-slate-400 hover:bg-slate-900 hover:text-white rounded transition-colors"><PrintIcon className="w-4 h-4" /></button>
+                                            <button onClick={() => h.type === 'Factura' ? setShowInvoiceDetail(h) : setShowPaymentDetail(h)} className="p-2 bg-slate-100 text-slate-400 hover:bg-[#F97316] hover:text-white rounded-sm transition-colors"><ViewIcon className="w-4 h-4" /></button>
+                                            <button onClick={() => h.type === 'Factura' ? handlePrintThermal(getInvoiceDocData(h)) : handlePrintThermal(getSupplierPaymentDocData(h))} className="p-2 bg-slate-100 text-slate-400 hover:bg-slate-900 hover:text-white rounded-sm transition-colors"><PrintIcon className="w-4 h-4" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -552,21 +694,21 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                     <p className="text-gray-400 font-bold text-sm">Gestion de cuentas por pagar.</p>
                 </div>
                 <div className="flex gap-4">
-                    <button onClick={() => { setSupplierForm({ name: '', taxId: '', phone: '', email: '', bankAccount: '' }); setView('add'); }} className="bg-brand-primary text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-2xl">+ Nuevo Proveedor</button>
+                    <button onClick={() => { setSupplierForm({ name: '', taxId: '', phone: '', email: '', bankAccount: '' }); setView('add'); }} className="bg-brand-primary text-white px-10 py-4 rounded-md font-black uppercase text-xs tracking-widest shadow-2xl">+ Nuevo Proveedor</button>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {suppliers.map(sup => (
-                    <div key={sup.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-6 border border-gray-200 relative group">
+                    <div key={sup.id} className="bg-white rounded-md shadow-sm hover:shadow-md hover:border-[#F97316] transition-all p-6 border border-gray-200 relative group">
                         {isAdmin && (
                             <button onClick={(e) => { e.stopPropagation(); onDeleteSupplier(sup.id); }} className="absolute top-4 right-4 p-2 text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all z-20"><TrashIcon className="w-4 h-4" /></button>
                         )}
-                        <h4 className="font-black text-sm text-gray-900 uppercase tracking-tighter mb-1 truncate">{sup.name}</h4>
+                        <h4 className="font-black text-sm text-gray-900 uppercase tracking-tighter mb-1 truncate group-hover:text-[#F97316] transition-colors">{sup.name}</h4>
                         <div className="bg-gray-50 p-4 rounded-md my-4">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pasivo Pendiente</p>
-                            <p className="text-xl font-black text-red-600 tracking-tighter">${sup.debt.toLocaleString()}</p>
+                            <p className="text-xl font-black text-red-600 tracking-tighter group-hover:text-[#F97316] transition-colors">${sup.debt.toLocaleString()}</p>
                         </div>
-                        <button onClick={() => { setSelectedSupplierId(sup.id); setView('statement'); }} className="w-full bg-slate-800 text-white py-2 rounded font-black uppercase text-[9px] shadow-sm hover:bg-slate-700 transition-all">Acceder al Libro Mayor</button>
+                        <button onClick={() => { setSelectedSupplierId(sup.id); setView('statement'); }} className="w-full bg-slate-800 text-white py-2 rounded-sm font-black uppercase text-[9px] shadow-sm hover:bg-[#F97316] transition-all">Acceder al Libro Mayor</button>
                     </div>
                 ))}
             </div>
@@ -577,7 +719,7 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
         <div className="space-y-8">
             {showPaymentDetail && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setShowPaymentDetail(null)}>
-                    <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white rounded-md shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="p-8 bg-emerald-600 text-white border-b-8 border-emerald-700 flex justify-between items-center">
                             <div>
                                 <h4 className="text-xl font-black uppercase tracking-widest">Comprobante de Pago</h4>
@@ -591,15 +733,15 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                                 <p className="text-5xl font-black text-emerald-600 tracking-tighter">${showPaymentDetail.amount.toLocaleString()}</p>
                             </div>
                             {showPaymentDetail.authorizedBy && (
-                                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                                <div className="bg-emerald-50 p-4 rounded-md border border-emerald-100 flex items-center justify-between">
                                     <span className="text-[10px] font-black text-emerald-600 uppercase">Autorizado</span>
                                     <span className="text-xs font-black text-emerald-900 italic uppercase">POR: {showPaymentDetail.authorizedBy}</span>
                                 </div>
                             )}
                         </div>
                         <div className="p-8 bg-gray-50 flex gap-4">
-                            <button onClick={() => setShowPaymentDetail(null)} className="flex-1 py-4 font-black uppercase text-[10px] text-gray-400 hover:bg-gray-100 rounded-2xl">Cerrar</button>
-                            <button onClick={() => handlePrintThermal(getSupplierPaymentDocData(showPaymentDetail))} className="flex-1 bg-gray-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl">Imprimir</button>
+                            <button onClick={() => setShowPaymentDetail(null)} className="flex-1 py-4 font-black uppercase text-[10px] text-gray-400 hover:bg-gray-100 rounded-md">Cerrar</button>
+                            <button onClick={() => handlePrintThermal(getSupplierPaymentDocData(showPaymentDetail))} className="flex-1 bg-gray-900 text-white py-4 rounded-md font-black text-[10px] uppercase shadow-xl">Imprimir</button>
                         </div>
                     </div>
                 </div>
@@ -637,7 +779,11 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                                             <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100">
                                                 <div>
                                                     <p className="text-xs font-black uppercase text-gray-900">{p?.name}</p>
-                                                    <p className="text-[10px] text-gray-400">{item.quantity} x ${item.unitCost}</p>
+                                                    <div className="flex gap-2 items-center">
+                                                        <p className="text-[10px] text-gray-400">{item.quantity} x ${item.unitCost}</p>
+                                                        {item.batch && <span className="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">LOTE: {item.batch}</span>}
+                                                        {item.expirationDate && <span className="bg-red-50 text-red-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">VENCE: {item.expirationDate}</span>}
+                                                    </div>
                                                 </div>
                                                 <p className="font-black text-gray-900">${(item.quantity * item.unitCost).toLocaleString()}</p>
                                             </div>
@@ -695,14 +841,14 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                                 <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block">Referencia</label>
                                 <input type="text" value={paymentForm.reference} onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })} className="w-full p-4 bg-gray-50 border border-gray-200 rounded font-black" />
                             </div>
-                            <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
+                            <div className="bg-emerald-50 p-6 rounded-md border border-emerald-100">
                                 <label className="text-[10px] font-black text-emerald-400 uppercase mb-1 block text-center">Monto ($)</label>
                                 <input type="number" step="0.01" value={paymentForm.amount} onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })} className="w-full bg-transparent text-center text-5xl font-black text-emerald-600 outline-none" />
                             </div>
                         </div>
                         <div className="p-8 bg-gray-50 flex gap-4">
                             <button onClick={() => setShowPaymentModal(false)} className="flex-1 font-black uppercase text-[10px] text-gray-400">Cancelar</button>
-                            <button onClick={handleConfirmPayment} disabled={isSubmitting || !paymentForm.invoiceId} className={`flex-1 ${isSubmitting || !paymentForm.invoiceId ? 'bg-gray-400' : 'bg-emerald-600 shadow-lg'} text-white py-4 rounded-xl font-black uppercase text-[10px]`}>
+                            <button onClick={handleConfirmPayment} disabled={isSubmitting || !paymentForm.invoiceId} className={`flex-1 ${isSubmitting || !paymentForm.invoiceId ? 'bg-gray-400' : 'bg-[#F97316] shadow-lg'} text-white py-4 rounded-md font-black uppercase text-[10px]`}>
                                 {isSubmitting ? 'Procesando...' : 'Confirmar Pago'}
                             </button>
                         </div>

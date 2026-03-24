@@ -19,7 +19,7 @@ interface ReportsDashboardProps {
     onAnularDispatch: (id: string, restoreStock: boolean) => Promise<void>;
     onAnularStorePayment: (id: string) => Promise<void>;
     onAnularPayment: (id: string) => Promise<void>;
-    initialTab?: 'analytics' | 'dispatches' | 'storePayments' | 'supplierPayments' | 'invoices' | 'profitability' | 'vault';
+    initialTab?: 'analytics' | 'dispatches' | 'storePayments' | 'supplierPayments' | 'invoices' | 'profitability' | 'vault' | 'losses';
     currentUser?: any;
     printerSize?: string;
     onIncrementDispatchPrintCount?: (id: string) => void;
@@ -80,7 +80,7 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
     onIncrementDispatchPrintCount,
     onIncrementStorePaymentPrintCount
 }) => {
-    const [activeTab, setActiveTab] = useState<'analytics' | 'dispatches' | 'storePayments' | 'supplierPayments' | 'invoices' | 'profitability' | 'vault'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'analytics' | 'dispatches' | 'storePayments' | 'supplierPayments' | 'invoices' | 'profitability' | 'vault' | 'losses'>(initialTab);
     const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [showDispatchDetail, setShowDispatchDetail] = useState<StockDispatch | null>(null);
@@ -239,6 +239,65 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
         };
     }, [filteredDispatches, products, stores]);
 
+    const lossesData = useMemo(() => {
+        const itemLosses: Record<string, { productId: string, name: string, quantity: number, cost: number, reason: string }> = {};
+        const storeLosses: Record<string, { storeId: string, name: string, cost: number }> = {};
+        const reasonTotals: Record<string, number> = { damaged: 0, expired: 0, lost: 0, siniestro: 0 };
+
+        // 1. Mermas desde Despachos (Devoluciones no-comerciales)
+        dispatches.filter(d => d.status !== 'cancelled').forEach(d => {
+            const badReturns = (d.returns || []).filter(r => r.reason !== 'good_condition');
+            const store = stores.find(s => s.id === d.storeId);
+            
+            badReturns.forEach(r => {
+                const p = products.find(prod => prod.id === r.productId);
+                const cost = (p?.purchaseCost || 0) + (p?.purchaseTax || 0) + (p?.purchaseFreight || 0);
+                const totalCost = r.quantity * cost;
+
+                // Razones
+                if (reasonTotals[r.reason] !== undefined) {
+                    reasonTotals[r.reason] += totalCost;
+                }
+
+                // Por Producto
+                if (!itemLosses[r.productId]) itemLosses[r.productId] = { productId: r.productId, name: p?.name || '?', quantity: 0, cost: 0, reason: r.reason };
+                itemLosses[r.productId].quantity += r.quantity;
+                itemLosses[r.productId].cost += totalCost;
+
+                // Por Tienda
+                if (store) {
+                    if (!storeLosses[store.id]) storeLosses[store.id] = { storeId: store.id, name: store.name, cost: 0 };
+                    storeLosses[store.id].cost += totalCost;
+                }
+            });
+        });
+
+        // 2. Mermas desde Notas de Baja (Ajustes Manuales)
+        invoices.filter(inv => inv.supplierId === 'sup-local' && inv.invoiceNumber.startsWith('BAJA')).forEach(inv => {
+            const type = inv.invoiceNumber.includes('SIN') ? 'siniestro' : 'damaged';
+            
+            inv.items.forEach(it => {
+                const p = products.find(prod => prod.id === it.productId);
+                const totalCost = Math.abs(it.quantity) * it.unitCost;
+                
+                if (reasonTotals[type] !== undefined) {
+                    reasonTotals[type] += totalCost;
+                }
+
+                if (!itemLosses[it.productId]) itemLosses[it.productId] = { productId: it.productId, name: p?.name || '?', quantity: 0, cost: 0, reason: type };
+                itemLosses[it.productId].quantity += Math.abs(it.quantity);
+                itemLosses[it.productId].cost += totalCost;
+            });
+        });
+
+        return {
+            byProduct: Object.values(itemLosses).sort((a, b) => b.cost - a.cost),
+            byStore: Object.values(storeLosses).sort((a, b) => b.cost - a.cost),
+            byReason: Object.entries(reasonTotals).map(([name, value]) => ({ name, value })),
+            totalLoss: Object.values(reasonTotals).reduce((acc, v) => acc + v, 0)
+        };
+    }, [dispatches, invoices, products, stores]);
+
     const getDispatchDocData = (dispatch: StockDispatch): DocumentData => {
         const store = stores.find(st => st.id === dispatch.storeId);
         return {
@@ -395,8 +454,11 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
                 <button onClick={() => setActiveTab('supplierPayments')} className={`px-6 py-3 font-bold text-[10px] uppercase tracking-widest transition-all border-b-4 ${activeTab === 'supplierPayments' ? 'bg-white border-red-500 text-red-600 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-100'}`}>
                     <div className="flex items-center gap-2"><DollarSignIcon className="w-4 h-4" /> Pagos Prov.</div>
                 </button>
-                <button onClick={() => setActiveTab('vault')} className={`px-6 py-3 font-bold text-[10px] uppercase tracking-widest transition-all border-b-4 ${activeTab === 'vault' ? 'bg-white border-red-600 text-red-600 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-100'}`}>
-                    <div className="flex items-center gap-2"><ClockIcon className="w-4 h-4" /> Bóveda (Anulados)</div>
+                <button onClick={() => setActiveTab('vault')} className={`px-4 py-3 font-bold text-[9px] uppercase tracking-widest transition-all border-b-4 ${activeTab === 'vault' ? 'bg-white border-red-600 text-red-600 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-100'}`}>
+                    <div className="flex items-center gap-2"><ClockIcon className="w-4 h-4" /> Bóveda</div>
+                </button>
+                <button onClick={() => setActiveTab('losses')} className={`px-4 py-3 font-bold text-[9px] uppercase tracking-widest transition-all border-b-4 ${activeTab === 'losses' ? 'bg-white border-red-500 text-red-500 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-100'}`}>
+                    <div className="flex items-center gap-2"><ActivityIcon className="w-4 h-4" /> Mermas</div>
                 </button>
             </div>
 
@@ -1018,6 +1080,88 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {activeTab === 'losses' && (
+                    <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pérdidas (Costo)</p>
+                                <p className="text-3xl font-black text-red-600">${lossesData.totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                            </div>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Items Afectados</p>
+                                <p className="text-3xl font-black text-gray-900">{lossesData.byProduct.reduce((acc, p) => acc + p.quantity, 0)} pts</p>
+                            </div>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Peor Sucursal</p>
+                                <p className="text-lg font-black text-gray-900 truncate">{lossesData.byStore[0]?.name || 'N/A'}</p>
+                            </div>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Motivo Principal</p>
+                                <p className="text-lg font-black text-indigo-600 uppercase">{lossesData.byReason.sort((a,b) => b.value - a.value)[0]?.name || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-4 border-b bg-gray-50/50">
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Distribución por Motivo</h3>
+                                </div>
+                                <div className="p-6 h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie 
+                                                data={lossesData.byReason.filter(r => r.value > 0)} 
+                                                dataKey="value" 
+                                                nameKey="name" 
+                                                cx="50%" 
+                                                cy="50%" 
+                                                innerRadius={60} 
+                                                outerRadius={80} 
+                                                paddingAngle={5}
+                                            >
+                                                {lossesData.byReason.filter(r => r.value > 0).map((_, i) => <Cell key={i} fill={['#ef4444', '#f59e0b', '#6366f1', '#1e293b'][i % 4]} />)}
+                                            </Pie>
+                                            <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                                            <Legend wrapperStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase' }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-4 border-b bg-gray-50/50 flex justify-between items-center">
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Detalle de Merma por Producto</h3>
+                                </div>
+                                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50/50 border-b text-[9px] font-black text-gray-400 uppercase sticky top-0">
+                                            <tr>
+                                                <th className="px-6 py-4 text-left">Producto</th>
+                                                <th className="px-6 py-4 text-center">Cant</th>
+                                                <th className="px-6 py-4 text-right">Pérdida (Costo)</th>
+                                                <th className="px-6 py-4 text-left">Motivo Principal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y text-[11px]">
+                                            {lossesData.byProduct.length === 0 ? (
+                                                <tr><td colSpan={4} className="py-20 text-center font-bold text-gray-300 uppercase tracking-widest">Sin registro de mermas</td></tr>
+                                            ) : (
+                                                lossesData.byProduct.map((p, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-6 py-4 font-black text-gray-900 uppercase">{p.name}</td>
+                                                        <td className="px-6 py-4 text-center font-bold text-gray-500">{p.quantity}</td>
+                                                        <td className="px-6 py-4 text-right font-black text-red-600">${p.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                                        <td className="px-6 py-4 uppercase font-bold text-gray-400">{p.reason}</td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>

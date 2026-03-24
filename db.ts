@@ -211,6 +211,9 @@ export const seedDatabase = async () => {
     await db.stores.bulkPut(storeData);
 
     // 4. DESPACHOS E INGRESOS DE EJEMPLO (HISTÓRICOS PARA EL GRÁFICO)
+    // Se ha comentado esta sección para que no aparezcan facturas ni pagos
+    // con folios #D-HIST-... que confundían al usuario con repetidos.
+    /*
     const generateHistoricalData = () => {
         const dispatches: StockDispatch[] = [];
         const payments: StorePayment[] = [];
@@ -251,4 +254,5 @@ export const seedDatabase = async () => {
     const hist = generateHistoricalData();
     await db.dispatches.bulkPut(hist.dispatches);
     await db.storePayments.bulkPut(hist.payments);
+    */
 };

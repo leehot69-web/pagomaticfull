@@ -22,7 +22,7 @@ const InfoBox: React.FC<{ icon: React.FC<{ className?: string }>; label: string;
       <Icon className="w-8 h-8 text-white/90" />
     </div>
     <div className="flex-1 p-4 bg-white flex flex-col justify-center">
-      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{label}</span>
       <span className="text-xl font-black text-gray-800 tracking-tight">{value}</span>
     </div>
   </div>
@@ -154,13 +154,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     return (
       <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[1000] flex items-center justify-center p-6 animate-in fade-in duration-300">
-        <div className="bg-white rounded-[48px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border-8 border-gray-100">
+        <div className="bg-white rounded-md shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-300">
           <div className="p-10 bg-gray-50 border-b flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">Balance de Salud Financiera</h2>
               <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Auditoría Interna • Sin IA • Datos Reales</p>
             </div>
-            <button onClick={() => setShowAuditModal(false)} className="bg-gray-200 hover:bg-black hover:text-white p-3 rounded-full transition-all">
+            <button onClick={() => setShowAuditModal(false)} className="bg-gray-200 hover:bg-black hover:text-white p-3 rounded-md transition-all">
               <XIcon className="w-6 h-6" />
             </button>
           </div>
@@ -179,9 +179,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* GANANCIAS (VERDE) */}
-              <div className="bg-emerald-50 rounded-[40px] p-8 border-2 border-emerald-100">
+              <div className="bg-emerald-50 rounded-md p-8 border border-emerald-200">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-emerald-500 p-3 rounded-2xl text-white shadow-lg shadow-emerald-200">
+                  <div className="bg-emerald-500 p-3 rounded-md text-white shadow-lg shadow-emerald-200">
                     <ActivityIcon className="w-6 h-6" />
                   </div>
                   <h4 className="text-emerald-800 font-black uppercase text-xs tracking-widest">Utilidad Operativa (Bruta)</h4>
@@ -200,9 +200,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* PERDIDAS (ROJO) */}
-              <div className="bg-red-50 rounded-[40px] p-8 border-2 border-red-100">
+              <div className="bg-red-50 rounded-md p-8 border border-red-200">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-red-500 p-3 rounded-2xl text-white shadow-lg shadow-red-200">
+                  <div className="bg-red-500 p-3 rounded-md text-white shadow-lg shadow-red-200">
                     <ActivityIcon className="w-6 h-6" />
                   </div>
                   <h4 className="text-red-800 font-black uppercase text-xs tracking-widest">Fugas e Incoherencias (Pérdidas)</h4>
@@ -222,7 +222,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* BALANCE PATRIMONIAL */}
-            <div className="bg-slate-900 rounded-[40px] p-10 text-white">
+            <div className="bg-slate-900 rounded-md p-10 text-white border border-slate-700">
               <h4 className="text-[10px] font-black uppercase tracking-[0.4em] mb-8 text-slate-500">Balance Cuentas x Cobrar vs Pagar</h4>
               <div className="space-y-6">
                 <div className="flex justify-between items-end">
@@ -235,7 +235,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <p className="text-2xl font-black tracking-tighter text-red-400">${metrics.totalAccountsPayable.toLocaleString()}</p>
                   </div>
                 </div>
-                <div className="h-4 bg-slate-800 rounded-full overflow-hidden flex border-2 border-slate-700">
+                <div className="h-4 bg-slate-800 rounded-sm overflow-hidden flex border-2 border-slate-700">
                   <div className="bg-emerald-500 h-full" style={{ width: `${(metrics.totalAccountsReceivable / (metrics.totalAccountsReceivable + metrics.totalAccountsPayable)) * 100}%` }}></div>
                   <div className="bg-red-500 h-full" style={{ width: `${(metrics.totalAccountsPayable / (metrics.totalAccountsReceivable + metrics.totalAccountsPayable)) * 100}%` }}></div>
                 </div>
@@ -249,7 +249,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="p-8 bg-gray-50 text-center border-t">
             <button
               onClick={() => setShowAuditModal(false)}
-              className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200"
+              className="px-12 py-4 bg-gray-900 text-white rounded-md font-black uppercase text-xs tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200"
             >
               Cerrar Informe de Auditoría
             </button>
@@ -270,7 +270,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             icon={WalletIcon}
             label="Cuentas por Cobrar"
             value={`$${metrics.totalAccountsReceivable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            colorClass="bg-[#00c0ef]"
+            colorClass="bg-[#F97316]"
           />
         )}
         {canSeeMoneyOut && (
@@ -290,14 +290,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           />
         )}
         {userRoles.includes('ADMIN') && (
-          <div className="bg-gradient-to-br from-brand-primary to-blue-700 rounded-sm shadow-sm flex overflow-hidden border border-blue-400 animate-pulse-subtle group cursor-pointer hover:scale-[1.02] transition-all" onClick={() => setShowAuditModal(true)}>
-            <div className="w-20 sm:w-24 flex items-center justify-center shrink-0 bg-black/20">
-              <ActivityIcon className="w-8 h-8 text-white" />
+          <div className="bg-gradient-to-br from-[#0D254C] to-[#1a2226] rounded-sm shadow-sm flex overflow-hidden border border-slate-700 animate-pulse-subtle group cursor-pointer hover:border-[#F97316] transition-all" onClick={() => setShowAuditModal(true)}>
+            <div className="w-20 sm:w-24 flex items-center justify-center shrink-0 bg-black/20 border-r border-white/5">
+              <ActivityIcon className="w-8 h-8 text-[#F97316]" />
             </div>
             <div className="flex-1 p-4 flex flex-col justify-center">
               <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Auditoría Financiera</span>
               <span className="text-[9px] font-bold text-white/50 uppercase">Ver Salud del Sistema</span>
-              <span className="mt-1 text-xs font-black text-white underline underline-offset-4">CONSULTAR AQUÍ</span>
+              <span className="mt-1 text-xs font-black text-[#F97316] underline underline-offset-4">CONSULTAR AQUÍ</span>
             </div>
           </div>
         )}
@@ -311,7 +311,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Monthly Recap Placeholder Style */}
-        <div className="lg:col-span-2 bg-white rounded-sm shadow-sm border-t-4 border-[#3c8dbc]">
+        <div className="lg:col-span-2 bg-white rounded-sm shadow-sm border-t-4 border-[#F97316]">
           <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50/30">
             <h3 className="text-sm font-bold text-gray-700 uppercase">Resumen Operativo Mensual</h3>
             <div className="flex gap-1">
@@ -323,7 +323,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex flex-col md:flex-row gap-8">
               <div className="flex-1">
                 <p className="text-center text-xs font-black text-gray-400 mb-10 uppercase tracking-[0.3em]">Flujo de Despacho vs Cobranza (Real vs Proyectado)</p>
-                <div className="h-80 bg-gray-50/50 rounded-[40px] flex items-end justify-between px-6 pb-12 pt-20 gap-4 border border-gray-100 relative overflow-hidden shadow-inner">
+                <div className="h-80 bg-gray-50/50 rounded-md flex items-end justify-between px-6 pb-12 pt-20 gap-4 border border-gray-300 relative overflow-hidden shadow-inner">
                   {/* Patrón de Fondo Estilo Infografía */}
                   <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: 'calc(100% / 7) 100%' }}></div>
 
@@ -336,9 +336,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </div>
 
                       <div className="flex w-full h-full items-end justify-center gap-1 px-1">
-                        {/* Barra de Despacho (Azul Moderno) */}
+                        {/* Barra de Despacho (Naranja) */}
                         <div
-                          className="relative flex-1 bg-gradient-to-t from-[#3c8dbc] to-[#00c0ef] rounded-t-2xl shadow-xl transition-all duration-1000 group-hover:brightness-110 overflow-hidden"
+                          className="relative flex-1 bg-gradient-to-t from-[#EA580C] to-[#F97316] rounded-t-sm shadow-xl transition-all duration-1000 group-hover:brightness-110 overflow-hidden"
                           style={{ height: `${Math.max(d.hDisp, 5)}%` }}
                         >
                           {/* Etiqueta de Valor */}
@@ -349,9 +349,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <div className="absolute bottom-0 left-0 right-0 h-4 opacity-20" style={{ backgroundImage: 'linear-gradient(45deg, #fff 25%, transparent 25%, transparent 50%, #fff 50%, #fff 75%, transparent 75%, transparent)', backgroundSize: '4px 4px' }}></div>
                         </div>
 
-                        {/* Barra de Cobranza (Verde Moderno) */}
+                        {/* Barra de Cobranza (Gris) */}
                         <div
-                          className="relative flex-1 bg-gradient-to-t from-[#00a65a] to-[#00ce6e] rounded-t-2xl shadow-xl transition-all duration-1000 delay-100 group-hover:brightness-110 overflow-hidden"
+                          className="relative flex-1 bg-gradient-to-t from-[#374850] to-[#4b5563] rounded-t-sm shadow-xl transition-all duration-1000 delay-100 group-hover:brightness-110 overflow-hidden"
                           style={{ height: `${Math.max(d.hColl, 5)}%` }}
                         >
                           <div className="absolute top-2 left-0 right-0 text-center">
@@ -389,8 +389,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span className="text-gray-500">Cobranza Realizada</span>
                       <span className="text-gray-900">{operationMetrics.collection.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                      <div className="bg-[#00c0ef] h-full transition-all duration-1000" style={{ width: `${operationMetrics.collection}%` }}></div>
+                    <div className="w-full bg-gray-100 h-2 rounded-sm border border-gray-200 overflow-hidden">
+                      <div className="bg-[#F97316] h-full transition-all duration-1000" style={{ width: `${operationMetrics.collection}%` }}></div>
                     </div>
                   </div>
                   <div>
@@ -398,7 +398,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span className="text-gray-500">Flujo de Inventario</span>
                       <span className="text-gray-900">{operationMetrics.flow.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-100 h-2 rounded-sm border border-gray-200 overflow-hidden">
                       <div className="bg-[#00a65a] h-full transition-all duration-1000" style={{ width: `${operationMetrics.flow}%` }}></div>
                     </div>
                   </div>
@@ -407,7 +407,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span className="text-gray-500">Liquidación a Proveedores</span>
                       <span className="text-gray-900">{operationMetrics.liquidation.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-100 h-2 rounded-sm border border-gray-200 overflow-hidden">
                       <div className="bg-[#dd4b39] h-full transition-all duration-1000" style={{ width: `${operationMetrics.liquidation}%` }}></div>
                     </div>
                   </div>
@@ -443,7 +443,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
           </div>
           <div className="p-4 bg-gray-50 border-t items-center flex justify-center">
-            <button onClick={() => onNavigate('stores')} className="text-[10px] font-black text-[#3c8dbc] uppercase tracking-widest hover:underline">Ver Todas las Sucursales</button>
+            <button onClick={() => onNavigate('stores')} className="text-[10px] font-black text-[#F97316] uppercase tracking-widest hover:underline">Ver Todas las Sucursales</button>
           </div>
         </div>
       </div>

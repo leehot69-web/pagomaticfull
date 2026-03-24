@@ -46,6 +46,9 @@ export interface DocumentData {
     authorizedBy?: string;
     dueDate?: string;
     copyType?: string;
+    businessName?: string;
+    businessTaxId?: string;
+    receivedBy?: string;
 }
 
 const getClausesForDoc = (type: DocumentType, dueDate?: string) => {
@@ -96,7 +99,7 @@ export const generateWhatsAppText = (doc: DocumentData): string => {
         store_inventory: '📊 *REPORTE DE STOCK*'
     }[doc.type];
 
-    let text = `${header}\n━━━━━━━━━━━━━━━━━\n`;
+    let text = `${doc.businessName ? `🏢 *${doc.businessName.toUpperCase()}*\n` : ''}${header}\n━━━━━━━━━━━━━━━━━\n`;
     text += `📋 *Ref:* #${doc.reference}\n`;
     text += `📅 *Fecha:* ${doc.date}\n`;
 
@@ -274,11 +277,12 @@ export const generatePrintHTML = (doc: DocumentData): string => {
             </style>
         </head>
         <body>
-            <div class="header">
-                <p style="margin:0; font-weight:900; color:#999; letter-spacing:2px; font-size:10px;">SISTEMA PAGOMATIC</p>
-                ${doc.copyType && doc.copyType !== 'ORIGINAL' ? `<div style="display:inline-block; border:2px solid #000; padding:4px 10px; font-weight:900; margin-bottom:10px; font-size:14px;">${doc.copyType}</div>` : ''}
-                <h1>${doc.storeName || 'Comprobante'}</h1>
-                <p>${title}</p>
+            <div className="header">
+                <p style="margin:0; font-weight:900; color:#333; font-size:16px; text-transform:uppercase;">${doc.businessName || 'INVERSIONES GUAICAIPURO C.A.'}</p>
+                <p style="margin:0; font-size:10px; color:#666;">RIF: ${doc.businessTaxId || 'J-31214041-0'}</p>
+                ${doc.copyType && doc.copyType !== 'ORIGINAL' ? `<div style="display:inline-block; border:2px solid #000; padding:4px 10px; font-weight:900; margin-top:10px; font-size:14px;">${doc.copyType}</div>` : ''}
+                <h1 style="margin-top:10px;">${title}</h1>
+                <p>#${doc.reference}</p>
             </div>
             <div class="ref">
                 <strong>#${doc.reference}</strong>
@@ -304,12 +308,12 @@ export const generatePrintHTML = (doc: DocumentData): string => {
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 0 10px;">
                     <div style="text-align: center; border-top: 1px solid #333; padding-top: 10px;">
-                        <span style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Entregado Por</span>
-                        <p style="font-size: 9px; color: #666; margin-top: 5px;">${doc.generatedBy || 'Personal Autorizado'}</p>
+                        <span style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Entregado / Pagado Por</span>
+                        <p style="font-size: 10px; color: #000; font-weight: 900; margin-top: 5px;">${doc.generatedBy || 'Personal Autorizado'}</p>
                     </div>
                     <div style="text-align: center; border-top: 1px solid #333; padding-top: 10px;">
-                        <span style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Recibido Conforme</span>
-                        <p style="font-size: 9px; color: #666; margin-top: 5px;">Firma, Nombre y Sello</p>
+                        <span style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Recibido / Cobrado Por</span>
+                        <p style="font-size: 10px; color: #000; font-weight: 900; margin-top: 5px;">${doc.receivedBy || 'Firma y Sello'}</p>
                     </div>
                 </div>
             </div>
@@ -359,7 +363,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             {onView && (
                 <button
                     onClick={onView}
-                    className={`${btnSize} bg-gray-100 hover:bg-brand-primary hover:text-white rounded-lg transition-all`}
+                    className={`${btnSize} bg-gray-100 hover:bg-[#F97316] hover:text-white rounded-sm transition-all`}
                     title="Ver Detalle"
                 >
                     <ViewIcon className={iconSize} />
@@ -367,14 +371,14 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             )}
             <button
                 onClick={onPrint}
-                className={`${btnSize} bg-gray-100 hover:bg-blue-600 hover:text-white rounded-lg transition-all`}
+                className={`${btnSize} bg-gray-100 hover:bg-slate-900 hover:text-white rounded-sm transition-all`}
                 title={printLabel || "Imprimir"}
             >
                 <PrintIcon className={iconSize} />
             </button>
             <button
                 onClick={onWhatsApp}
-                className={`${btnSize} bg-gray-100 hover:bg-green-600 hover:text-white rounded-lg transition-all`}
+                className={`${btnSize} bg-gray-100 hover:bg-emerald-600 hover:text-white rounded-sm transition-all`}
                 title="Compartir por WhatsApp"
             >
                 <WhatsAppIcon className={iconSize} />
@@ -382,7 +386,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             {onDelete && (
                 <button
                     onClick={onDelete}
-                    className={`${btnSize} bg-orange-100 hover:bg-orange-500 hover:text-white rounded-lg transition-all`}
+                    className={`${btnSize} bg-red-50 hover:bg-red-600 hover:text-white rounded-sm transition-all`}
                     title="Anular"
                 >
                     <svg className={iconSize} fill="none" stroke="currentColor" viewBox="0 0 24 24">

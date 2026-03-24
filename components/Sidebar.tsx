@@ -63,17 +63,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, curren
     return (
         <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-[#222d32] h-screen transition-all duration-300 flex flex-col no-print shrink-0 border-r border-black/10 shadow-xl`}>
             {/* Logo Section */}
-            <div className={`h-14 flex items-center ${collapsed ? 'justify-center' : 'px-4'} bg-[#367fa9] text-white shadow-md overflow-hidden whitespace-nowrap`}>
-                <LogoIcon className="w-8 h-8 shrink-0 fill-white" />
+            <div className={`h-14 flex items-center ${collapsed ? 'justify-center' : 'px-4'} bg-[#222d32] text-white border-b border-black/20 shadow-sm overflow-hidden whitespace-nowrap`}>
+                <LogoIcon className="w-8 h-8 shrink-0 fill-[#F97316]" />
                 {!collapsed && (
-                    <span className="ml-3 text-xl font-bold tracking-tight uppercase">PAGO<span className="font-light text-white/80">MATIC</span></span>
+                    <span className="ml-3 text-xl font-bold tracking-tight uppercase">PAGO<span className="font-light text-[#F97316]">MATIC</span></span>
                 )}
             </div>
 
             {/* Logo de Cliente (Pocho Burger) */}
             <div className={`px-4 py-3 flex flex-col items-center bg-[#222d32] border-b border-black/20`}>
                 <div className={`
-                    bg-black rounded-2xl shadow-xl flex items-center justify-center overflow-hidden border-2 border-white/10
+                    bg-black rounded-md shadow-xl flex items-center justify-center overflow-hidden border-2 border-white/10
                     ${collapsed ? 'w-12 h-12' : 'w-full h-20'}
                     transition-all duration-300
                 `}>
@@ -89,15 +89,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, curren
             </div>
 
             {/* User Profile */}
-            <div className={`p-4 flex items-center ${collapsed ? 'justify-center' : ''} bg-[#222d32]`}>
-                <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white shrink-0 shadow-lg border-2 border-gray-500 overflow-hidden">
+            <div className={`p-4 flex items-center ${collapsed ? 'justify-center' : ''} bg-[#1a2226]`}>
+                <div className="w-10 h-10 rounded-md bg-gray-700 flex items-center justify-center text-white shrink-0 shadow-lg border border-gray-600 overflow-hidden">
                     {currentUser.name[0]}
                 </div>
                 {!collapsed && (
                     <div className="ml-3 overflow-hidden">
                         <p className="text-white text-xs font-bold truncate uppercase tracking-tight">{currentUser.name}</p>
                         <div className="flex items-center gap-1 mt-0.5">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <div className="w-2 h-2 rounded-full bg-[#F97316]"></div>
                             <span className="text-[10px] text-gray-400 capitalize">Online</span>
                         </div>
                     </div>
@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, curren
             {/* Search Box */}
             {!collapsed && (
                 <div className="px-4 py-2">
-                    <div className="flex bg-[#374850] rounded-sm items-center px-3 py-1.5 border border-transparent focus-within:border-gray-500 transition-all">
+                    <div className="flex bg-[#374850] rounded-sm items-center px-3 py-1.5 border border-transparent focus-within:border-[#F97316] transition-all">
                         <input
                             type="text"
                             placeholder="Buscar..."
@@ -120,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, curren
 
             {/* Menu Label */}
             {!collapsed && (
-                <div className="px-4 py-3 bg-[#1a2226]">
+                <div className="px-4 py-3 bg-[#1a2226] border-y border-black/10">
                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Navegación Principal</span>
                 </div>
             )}
@@ -134,20 +134,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, curren
                             key={item.view}
                             onClick={() => onNavigate(item.view)}
                             className={`w-full flex items-center ${collapsed ? 'justify-center' : 'px-4'} py-3 transition-colors relative group
-                                ${isActive ? 'bg-[#1e282c] text-white border-l-4 border-[#3c8dbc]' : 'text-[#b8c7ce] hover:bg-[#1e282c] hover:text-white border-l-4 border-transparent'}`}
+                                ${isActive ? 'bg-[#374850] text-white border-l-4 border-[#F97316]' : 'text-[#b8c7ce] hover:bg-[#374850] hover:text-white border-l-4 border-transparent'}`}
                         >
-                            <span className={`${isActive ? 'text-white' : 'text-[#b8c7ce] group-hover:text-white'} transition-colors`}>
+                            <span className={`${isActive ? 'text-[#F97316]' : 'text-[#b8c7ce] group-hover:text-white'} transition-colors`}>
                                 {iconMap[item.view] || <ActivityIcon className="w-5 h-5" />}
                             </span>
                             {!collapsed && (
                                 <span className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden">
                                     {item.label.split('(')[0].trim()}
                                 </span>
-                            )}
-                            {collapsed && (
-                                <div className="absolute left-full ml-4 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none whitespace-nowrap shadow-xl">
-                                    {item.label.split('(')[0].trim()}
-                                </div>
                             )}
                         </button>
                     );
@@ -157,11 +152,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, curren
             {/* Footer / System Status */}
             {!collapsed && (
                 <div className="p-4 border-t border-gray-700/30">
-                    <div className="bg-[#1e282c] p-3 rounded-lg border border-gray-700/50">
-                        <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-1">Estado v2.4</p>
+                    <div className="bg-[#1a2226] p-3 rounded-sm border border-gray-700/50">
+                        <p className="text-[9px] font-bold text-[#F97316] uppercase tracking-widest mb-1">Estado v2.4</p>
                         <div className="flex items-center justify-between text-[9px] text-gray-500">
                             <span>Sincronizado</span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#F97316] animate-pulse"></div>
                         </div>
                     </div>
                 </div>

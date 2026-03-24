@@ -64,7 +64,10 @@ const AppContent: React.FC = () => {
     handleDeleteTerminal,
     handleAddUser,
     handleDeleteUser,
-    handleUpdateUser
+    handleUpdateUser,
+    quickAccessConfig,
+    pinnedBrands,
+    showBrandFilter
   } = useSimulatedData();
 
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -187,18 +190,18 @@ const AppContent: React.FC = () => {
 
     if (!canAccess(currentView)) {
       return (
-        <div className="bg-red-50 p-12 rounded-[40px] border-4 border-red-100 text-center">
+        <div className="bg-red-50 p-12 rounded-md border-4 border-red-100 text-center">
           <ActivityIcon className="w-16 h-16 text-red-600 mx-auto mb-4" />
           <h3 className="text-2xl font-black text-red-900 uppercase">Acceso Restringido</h3>
           <p className="text-red-600 font-bold mt-2">Su perfil de {currentUser?.roles?.join(', ')} no tiene permisos para este módulo.</p>
-          <button onClick={() => setCurrentView('dashboard')} className="mt-8 bg-red-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs">Volver al Inicio</button>
+          <button onClick={() => setCurrentView('dashboard')} className="mt-8 bg-red-600 text-white px-8 py-4 rounded-md font-black uppercase text-xs">Volver al Inicio</button>
         </div>
       );
     }
 
     switch (currentView) {
       case 'quick-access':
-        return <QuickAccessPanel onNavigate={setCurrentView} storeName={storeName} />;
+        return <QuickAccessPanel onNavigate={setCurrentView} storeName={storeName} quickAccessConfig={quickAccessConfig} />;
       case 'admin-center':
         return <AdminCenter />;
       case 'reports':
@@ -330,6 +333,8 @@ const AppContent: React.FC = () => {
             currentUser={currentUser}
             printerSize={printerSize}
             onIncrementDispatchPrintCount={handleIncrementDispatchPrintCount}
+            pinnedBrands={pinnedBrands}
+            showBrandFilter={showBrandFilter}
           />
         );
       default:
@@ -357,16 +362,15 @@ const AppContent: React.FC = () => {
   };
 
   const Auth = () => (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-[48px] shadow-2xl p-12 animate-in zoom-in-95 duration-500 border border-gray-100 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-primary to-brand-accent"></div>
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white rounded-md shadow-2xl p-12 animate-in zoom-in-95 duration-500 border-t-8 border-[#F97316] relative overflow-hidden">
         <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-brand-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-100 rotate-3">
+          <div className="w-20 h-20 bg-slate-900 rounded-md flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-100">
             <ActivityIcon className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter leading-none mb-2">PAGOMATIC</h1>
-          <div className="inline-block bg-brand-primary/5 px-4 py-1.5 rounded-full border border-brand-primary/10">
-            <p className="text-brand-primary font-black text-[10px] uppercase tracking-[0.2em]">{storeName || 'Licencia de Uso'}</p>
+          <div className="inline-block bg-[#F97316]/10 px-4 py-1.5 rounded-sm border border-[#F97316]/20">
+            <p className="text-[#F97316] font-black text-[10px] uppercase tracking-[0.2em]">{storeName || 'Licencia de Uso'}</p>
           </div>
           <p className="text-gray-400 font-bold text-[9px] uppercase tracking-[0.3em] mt-4">Control Central de Seguridad</p>
         </div>
@@ -378,14 +382,14 @@ const AppContent: React.FC = () => {
                 <button
                   key={u.id}
                   onClick={() => handleLogin(u.username)}
-                  className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-brand-primary group rounded-2xl border-2 border-transparent hover:border-blue-400 transition-all text-left"
+                  className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-slate-900 group rounded-md border-2 border-transparent hover:border-[#F97316] transition-all text-left"
                 >
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-brand-primary group-hover:bg-blue-400 group-hover:text-white transition-colors">
+                  <div className="w-12 h-12 bg-white rounded-sm flex items-center justify-center font-black text-slate-900 group-hover:bg-[#F97316] group-hover:text-white transition-colors">
                     {u.name[0]}
                   </div>
                   <div>
                     <p className="font-black text-gray-900 group-hover:text-white uppercase transition-colors">{u.name}</p>
-                    <p className="text-[9px] font-black text-gray-400 group-hover:text-blue-100 uppercase tracking-widest transition-colors">{u.roles.join(' • ')}</p>
+                    <p className="text-[9px] font-black text-gray-400 group-hover:text-orange-100 uppercase tracking-widest transition-colors">{u.roles.join(' • ')}</p>
                   </div>
                 </button>
               ))}

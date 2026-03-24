@@ -12,6 +12,7 @@ import { View } from '../constants';
 interface QuickAccessPanelProps {
     onNavigate: (view: View) => void;
     storeName: string;
+    quickAccessConfig: string[];
 }
 
 // Custom icons for missing ones
@@ -49,12 +50,13 @@ const SettingsIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
-const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeName }) => {
+const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeName, quickAccessConfig }) => {
     const categories = [
         {
             title: 'Operaciones',
             items: [
                 {
+                    id: 'dispatches',
                     label: 'Nuevo Despacho',
                     desc: 'Carga de camiones y POS',
                     icon: TruckIcon,
@@ -62,6 +64,7 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
                     view: 'dispatches' as View
                 },
                 {
+                    id: 'stores',
                     label: 'Gestión Sucursales',
                     desc: 'Cobros y administración',
                     icon: DollarSignIcon,
@@ -69,18 +72,20 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
                     view: 'stores' as View
                 },
                 {
+                    id: 'inventory',
                     label: 'Consultar Stock',
                     desc: 'Inventario en tiempo real',
                     icon: PackageIcon,
                     color: 'bg-orange-500',
                     view: 'inventory' as View
                 },
-            ]
+            ].filter(i => quickAccessConfig.includes(i.id))
         },
         {
             title: 'Proveedores',
             items: [
                 {
+                    id: 'suppliers_load',
                     label: 'Cargar Factura',
                     desc: 'Entrada de mercancía',
                     icon: FileTextIcon,
@@ -88,18 +93,20 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
                     view: 'suppliers' as View
                 },
                 {
+                    id: 'suppliers_pay',
                     label: 'Pagar Facturas',
                     desc: 'Egresos a terceros',
                     icon: CreditCardIcon,
                     color: 'bg-rose-600',
                     view: 'suppliers' as View
                 },
-            ]
+            ].filter(i => quickAccessConfig.includes(i.id))
         },
         {
             title: 'Control y Auditoría',
             items: [
                 {
+                    id: 'reports_vault',
                     label: 'Bóveda',
                     desc: 'Movimientos anulados',
                     icon: ClockIcon,
@@ -107,18 +114,20 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
                     view: 'reports' as View
                 },
                 {
+                    id: 'reports_intel',
                     label: 'Inteligencia',
                     desc: 'Reportes y finanzas',
                     icon: ActivityIcon,
                     color: 'bg-purple-600',
                     view: 'reports' as View
                 },
-            ]
+            ].filter(i => quickAccessConfig.includes(i.id))
         },
         {
             title: 'Sistema',
             items: [
                 {
+                    id: 'personnel',
                     label: 'Usuarios',
                     desc: 'Gestión de perfiles',
                     icon: UsersIcon,
@@ -126,13 +135,14 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
                     view: 'personnel' as View
                 },
                 {
+                    id: 'security',
                     label: 'Seguridad',
                     desc: 'Configuración técnica',
                     icon: SettingsIcon,
                     color: 'bg-zinc-700',
                     view: 'security' as View
                 },
-            ]
+            ].filter(i => quickAccessConfig.includes(i.id))
         }
     ];
 
@@ -142,15 +152,15 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
             <div className="flex justify-between items-center mb-6 shrink-0">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase mb-1">Accesos Rápidos</h1>
-                    <div className="inline-block bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                    <div className="inline-block bg-emerald-500/10 px-3 py-1 rounded-sm border border-emerald-500/20">
                         <p className="text-emerald-400 font-black text-[8px] uppercase tracking-[0.2em]">
                             {storeName} • Sesión Maestra
                         </p>
                     </div>
                 </div>
                 <div className="hidden md:flex gap-3">
-                    <div className="bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <div className="bg-slate-800 px-4 py-2 rounded-md border border-slate-700 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-sm bg-emerald-500 animate-pulse"></div>
                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">Online</span>
                     </div>
                 </div>
@@ -169,7 +179,7 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
                                     <button
                                         key={i}
                                         onClick={() => onNavigate(item.view)}
-                                        className="group relative flex flex-col justify-center p-4 rounded-3xl aspect-[1.8/1] transition-all hover:scale-[1.03] active:scale-95 overflow-hidden shadow-2xl border-2 border-white/5 hover:border-white/20"
+                                        className="group relative flex flex-col justify-center p-4 rounded-md aspect-[1.8/1] transition-all hover:scale-[1.03] active:scale-95 overflow-hidden shadow-2xl border-2 border-white/5 hover:border-white/20"
                                     >
                                         {/* Tile Background */}
                                         <div className={`${item.color} absolute inset-0 opacity-85 group-hover:opacity-100 transition-opacity`}></div>
@@ -179,7 +189,7 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
 
                                         <div className="relative z-10 flex items-center gap-4">
                                             {/* Icon Container - Larger & High Contrast */}
-                                            <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg group-hover:rotate-6 transition-transform shrink-0">
+                                            <div className="w-14 h-14 bg-white/10 rounded-sm flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg group-hover:rotate-6 transition-transform shrink-0">
                                                 <item.icon className="w-8 h-8 text-white" />
                                             </div>
 
@@ -195,7 +205,7 @@ const QuickAccessPanel: React.FC<QuickAccessPanelProps> = ({ onNavigate, storeNa
                                         </div>
 
                                         {/* Corner Decoration */}
-                                        <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-black/20 rounded-full blur-xl group-hover:bg-white/10 transition-colors"></div>
+                                        <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-black/20 rounded-sm blur-xl group-hover:bg-white/10 transition-colors"></div>
                                     </button>
                                 ))}
                             </div>

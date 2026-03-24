@@ -213,6 +213,22 @@ export const SecurityDashboard: React.FC<SecurityDashboardProps> = ({
                                                 <p className="text-[9px] font-bold text-gray-400 whitespace-nowrap">{new Date(log.timestamp).toLocaleTimeString()}</p>
                                             </div>
                                             <p className="text-xs font-bold text-gray-600 mt-1">{log.details}</p>
+                                            
+                                            {/* Renderizador de Variaciones (Antes/Después) */}
+                                            {log.oldValue && log.newValue && (
+                                                <div className="mt-2 text-[10px] space-y-1 bg-white p-2 rounded-xl border border-gray-100">
+                                                    <p className="font-black text-gray-400 uppercase tracking-widest mb-1">Cambios detectados:</p>
+                                                    {Object.keys(log.newValue).filter(key => key !== 'id' && log.oldValue[key] !== log.newValue[key]).map(key => (
+                                                        <div key={key} className="flex items-center gap-2">
+                                                            <span className="font-bold text-gray-500">{key}:</span>
+                                                            <span className="line-through text-red-400 bg-red-50 px-1 rounded">{JSON.stringify(log.oldValue[key])}</span>
+                                                            <span className="text-gray-400">➔</span>
+                                                            <span className="text-emerald-600 bg-emerald-50 px-1 rounded font-bold">{JSON.stringify(log.newValue[key])}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             <p className="text-[9px] font-black text-gray-300 uppercase mt-1 tracking-widest">{log.entity}: {log.entityId}</p>
                                         </div>
                                     </div>
