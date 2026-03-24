@@ -278,8 +278,8 @@ export const generatePrintHTML = (doc: DocumentData): string => {
         </head>
         <body>
             <div className="header">
-                <p style="margin:0; font-weight:900; color:#333; font-size:16px; text-transform:uppercase;">${doc.businessName || 'INVERSIONES GUAICAIPURO C.A.'}</p>
-                <p style="margin:0; font-size:10px; color:#666;">RIF: ${doc.businessTaxId || 'J-31214041-0'}</p>
+                <p style="margin:0; font-weight:900; color:#333; font-size:16px; text-transform:uppercase;">${doc.businessName || 'PAGOMATIC'}</p>
+                ${doc.businessTaxId ? `<p style="margin:0; font-size:10px; color:#666;">RIF: ${doc.businessTaxId}</p>` : ''}
                 ${doc.copyType && doc.copyType !== 'ORIGINAL' ? `<div style="display:inline-block; border:2px solid #000; padding:4px 10px; font-weight:900; margin-top:10px; font-size:14px;">${doc.copyType}</div>` : ''}
                 <h1 style="margin-top:10px;">${title}</h1>
                 <p>#${doc.reference}</p>

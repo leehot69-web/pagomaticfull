@@ -22,6 +22,7 @@ interface ReportsDashboardProps {
     initialTab?: 'analytics' | 'dispatches' | 'storePayments' | 'supplierPayments' | 'invoices' | 'profitability' | 'vault' | 'losses';
     currentUser?: any;
     printerSize?: string;
+    storeName?: string;
     onIncrementDispatchPrintCount?: (id: string) => void;
     onIncrementStorePaymentPrintCount?: (id: string) => void;
 }
@@ -77,6 +78,7 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
     dispatches, storePayments, supplierPayments, invoices, stores, suppliers, products,
     onAnularDispatch, onAnularStorePayment, onAnularPayment, initialTab = 'analytics', currentUser,
     printerSize = '80mm',
+    storeName,
     onIncrementDispatchPrintCount,
     onIncrementStorePaymentPrintCount
 }) => {
@@ -318,6 +320,7 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
             generatedBy: currentUser?.name,
             userRole: currentUser?.roles?.join(', '),
             authorizedBy: dispatch.authorizedBy,
+            businessName: storeName,
             dueDate: dispatch.dueDate ? (dispatch.dueDate.includes('-') ? dispatch.dueDate.split('-').reverse().join('/') : dispatch.dueDate) : undefined
         };
     };
@@ -334,7 +337,8 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
             method: payment.method,
             generatedBy: currentUser?.name,
             userRole: currentUser?.roles?.join(', '),
-            authorizedBy: payment.authorizedBy
+            authorizedBy: payment.authorizedBy,
+            businessName: storeName
         };
     };
 
@@ -381,7 +385,8 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
             }),
             generatedBy: currentUser?.name,
             userRole: currentUser?.roles?.join(', '),
-            authorizedBy: invoice.authorizedBy
+            authorizedBy: invoice.authorizedBy,
+            businessName: storeName
         };
     };
 
@@ -398,7 +403,8 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
             concept: payment.invoiceNumber ? `Pago de Factura ${payment.invoiceNumber}` : 'Pago General',
             generatedBy: currentUser?.name,
             userRole: currentUser?.roles?.join(', '),
-            authorizedBy: payment.authorizedBy
+            authorizedBy: payment.authorizedBy,
+            businessName: storeName
         };
     };
 

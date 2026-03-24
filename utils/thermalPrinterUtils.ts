@@ -82,8 +82,8 @@ export const generateThermalHTML = (doc: DocumentData, options: ThermalPrintOpti
         </head>
         <body>
             <div class="center header">
-                <div class="bold" style="font-size: 14px;">${(doc.businessName || 'INVERSIONES GUAICAIPURO C.A.').toUpperCase()}</div>
-                <div>RIF: ${doc.businessTaxId || 'J-31214041-0'}</div>
+                <div class="bold" style="font-size: 14px;">${(doc.businessName || 'PAGOMATIC').toUpperCase()}</div>
+                <div>${doc.businessTaxId ? `RIF: ${doc.businessTaxId}` : ''}</div>
                 <div class="status-badge">${statusLabel}</div>
                 <h1>${title}</h1>
             </div>
@@ -251,7 +251,8 @@ export const printThermal = async (doc: DocumentData, options: ThermalPrintOptio
             await sendEscPos(init);
             await sendEscPos(center);
             await sendEscPos(boldOn);
-            await sendEscPos(encoder.encode(`${(doc.businessName || "INVERSIONES GUAICAIPURO C.A.").toUpperCase()}\n`));
+            await sendEscPos(encoder.encode(`${(doc.businessName || "PAGOMATIC").toUpperCase()}\n`));
+            if (doc.businessTaxId) await sendEscPos(encoder.encode(`RIF: ${doc.businessTaxId}\n`));
             await sendEscPos(boldOff);
             await sendEscPos(encoder.encode(`${(doc.type || 'RECIBO').toUpperCase()}\n`));
             await sendEscPos(left);

@@ -22,6 +22,7 @@ interface SuppliersDashboardProps {
     onNavigateToReports: () => void;
     currentUser?: any;
     printerSize?: string;
+    storeName?: string;
 }
 
 interface InvoiceItemForm {
@@ -42,7 +43,8 @@ interface InvoiceItemForm {
 export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
     suppliers = [], products = [], invoices = [], payments = [],
     onAddSupplier, onUpdateSupplier, onDeleteSupplier, onAddInvoice, onAddPayment, onAddProduct, onUpdateProduct, onAnularPayment,
-    isAdmin = false, onNavigateToReports, currentUser, printerSize = '80mm'
+    isAdmin = false, onNavigateToReports, currentUser, printerSize = '80mm',
+    storeName = 'PAGOMATIC'
 }) => {
     const { notify, confirm } = useNotifications();
     const [view, setView] = useState<'list' | 'add' | 'edit' | 'statement' | 'invoice'>('list');
@@ -76,8 +78,8 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                 const product = products.find(p => p.id === item.productId);
                 return { name: product?.name || 'Producto', quantity: item.quantity, unitPrice: item.unitCost };
             }),
-            businessName: 'Inversiones Guaicaipuro C.A.', // Nombre corporativo solicitado
-            businessTaxId: 'J-50123456-7',
+            businessName: storeName,
+            businessTaxId: '', // Opcional, se puede añadir a db.settings después
             generatedBy: currentUser?.name || 'ADMIN',
             receivedBy: supplier?.name, // El proveedor es quien entrega/tira la factura
             userRole: currentUser?.roles?.join(', '),
@@ -107,8 +109,8 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
                     unitPrice: it.unitCost
                 };
             }),
-            businessName: 'Inversiones Guaicaipuro C.A.',
-            businessTaxId: 'J-50123456-7',
+            businessName: storeName,
+            businessTaxId: '',
             generatedBy: currentUser?.name || 'TESORERÍA', // Quien emite el pago
             receivedBy: supplier?.name, // Quien recibe el cobro
             userRole: currentUser?.roles?.join(', '),

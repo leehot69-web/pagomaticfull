@@ -143,6 +143,7 @@ const AppContent: React.FC = () => {
         vehiclePlate: plate,
         generatedBy: currentUser?.name,
         userRole: currentUser?.roles?.join(', '),
+        businessName: storeName,
         dueDate: (() => {
           const d = new Date();
           d.setDate(d.getDate() + (store?.config?.paymentTermDays || 15));
@@ -220,6 +221,7 @@ const AppContent: React.FC = () => {
             initialTab={reportsInitialTab}
             currentUser={currentUser}
             printerSize={printerSize}
+            storeName={storeName}
             onIncrementDispatchPrintCount={handleIncrementDispatchPrintCount}
             onIncrementStorePaymentPrintCount={handleIncrementStorePaymentPrintCount}
           />
@@ -259,6 +261,7 @@ const AppContent: React.FC = () => {
             }}
             currentUser={currentUser}
             printerSize={printerSize}
+            storeName={storeName}
           />
         );
       case 'security':
