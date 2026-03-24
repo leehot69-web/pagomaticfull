@@ -274,6 +274,11 @@ export const generatePrintHTML = (doc: DocumentData): string => {
                 th { background: ${color}; color: white; padding: 10px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
                 .total { text-align: right; font-size: 28px; font-weight: bold; color: ${color}; margin-top: 20px; border-top: 3px solid ${color}; padding-top: 15px; }
                 .footer { text-align: center; margin-top: 25px; font-size: 10px; color: #999; border-top: 1px dashed #ddd; padding-top: 15px; }
+                @media print {
+                    body { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+                    .header, .footer, .info, .total, table tr { page-break-inside: avoid; }
+                    @page { margin: 0.5cm; size: auto; }
+                }
             </style>
         </head>
         <body>

@@ -78,6 +78,11 @@ export const generateThermalHTML = (doc: DocumentData, options: ThermalPrintOpti
                     justify-content: center;
                     font-size: 8px;
                 }
+                @media print {
+                    body { margin: 0; padding: 0; width: ${is80mm ? '80mm' : '58mm'}; }
+                    @page { margin: 0; }
+                    .center, .header, table, .total-row, .footer { page-break-inside: avoid; }
+                }
             </style>
         </head>
         <body>

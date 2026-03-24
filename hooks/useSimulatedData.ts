@@ -493,7 +493,7 @@ export const useSimulatedData = () => {
             
             await logAction('create', 'invoice', invoiceId, `Nueva factura de compra #${inv.invoiceNumber} registrada.`);
 
-            // Si no requiere aprobación, aplicar efectos de inmediato (Estilo Guaicaipuro)
+            // Si no requiere aprobación, aplicar efectos de inmediato (Estilo Pagomatic)
             if (!approvalPending) {
                 for (const item of inv.items) {
                     const product = await db.products.get(item.productId);
@@ -721,7 +721,7 @@ export const useSimulatedData = () => {
                     await db.invoices.update(id, authData);
                     const inv = await db.invoices.get(id);
                     if (inv) {
-                        // APLICAR CAMBIOS DE PRECIOS AL CATÁLOGO (ESTILO GUAICAIPURO)
+                        // APLICAR CAMBIOS DE PRECIOS AL CATÁLOGO (ESTILO PAGOMATIC)
                         for (const item of inv.items) {
                             const product = await db.products.get(item.productId);
                             if (product) {

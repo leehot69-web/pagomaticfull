@@ -25,6 +25,7 @@ interface StoresDashboardProps {
     isAdmin?: boolean;
     currentUser?: any;
     printerSize?: string;
+    storeName?: string;
     onIncrementDispatchPrintCount?: (id: string) => void;
     onIncrementStorePaymentPrintCount?: (id: string) => void;
 }
@@ -34,6 +35,7 @@ export const StoresDashboard: React.FC<StoresDashboardProps> = ({
     onAddStore, onUpdateStore, onDeleteStore, onAddTerminal, onDeleteTerminal, onAddStorePayment, onAnularStorePayment, onAnularDispatch, onReturnDispatch, onPartialReturn, externalStoreId,
     isAdmin = false, currentUser,
     printerSize = '80mm',
+    storeName = 'PAGOMATIC',
     onIncrementDispatchPrintCount,
     onIncrementStorePaymentPrintCount
 }) => {
@@ -117,13 +119,12 @@ export const StoresDashboard: React.FC<StoresDashboardProps> = ({
         }
     };
 
-    const handlePrintThermal = (type: 'dispatch' | 'payment', id: string) => {
+    const handlePrintThermal = async (type: 'dispatch' | 'payment', id: string) => {
         const docData = getDocData(type, id);
         if (docData) {
-            smartPrint(docData, { size: printerSize as any }, () => {
-                if (type === 'dispatch' && onIncrementDispatchPrintCount) onIncrementDispatchPrintCount(id);
-                if (type === 'payment' && onIncrementStorePaymentPrintCount) onIncrementStorePaymentPrintCount(id);
-            });
+            await smartPrint(docData, { size: printerSize as any }, printDocument);
+            if (type === 'dispatch' && onIncrementDispatchPrintCount) onIncrementDispatchPrintCount(id);
+            if (type === 'payment' && onIncrementStorePaymentPrintCount) onIncrementStorePaymentPrintCount(id);
         }
     };
 
@@ -145,6 +146,7 @@ export const StoresDashboard: React.FC<StoresDashboardProps> = ({
                 })),
                 storeName: s.name,
                 storeAddress: s.location,
+                businessName: storeName,
                 generatedBy: currentUser?.name,
                 authorizedBy: d.authorizedBy,
                 dueDate: d.dueDate
@@ -162,6 +164,7 @@ export const StoresDashboard: React.FC<StoresDashboardProps> = ({
                 storeName: s.name,
                 method: p.method,
                 concept: 'Abono a Cuenta',
+                businessName: storeName,
                 generatedBy: currentUser?.name,
                 authorizedBy: p.authorizedBy
             };

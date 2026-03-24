@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useSimulatedData } from '../hooks/useSimulatedData';
 import { ActionButtons, DocumentData } from '../utils/shareUtils';
 import { smartPrint } from '../utils/thermalPrinterUtils';
+import { db } from '../db';
 
 const AdminCenter: React.FC = () => {
     const {
@@ -95,6 +96,40 @@ const AdminCenter: React.FC = () => {
         await handleRejectDocument(rejectingDoc.entity, rejectingDoc.id, rejectReason);
         setRejectingDoc(null);
         setRejectReason('');
+    };
+    
+    // Función de Respaldo Completo
+    const handleExportDatabase = async () => {
+        try {
+            const tableNames = [
+                'suppliers', 'stores', 'products', 'invoices', 'dispatches',
+                'storePayments', 'supplierPayments', 'stockAdjustments', 'settings', 'users'
+            ];
+            
+            const backup: any = {
+                version: 1.0,
+                timestamp: new Date().toISOString(),
+                tables: {}
+            };
+            
+            for (const table of tableNames) {
+                backup.tables[table] = await (db as any)[table].toArray();
+            }
+            
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = `PAGOMATIC_BACKUP_${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Error al exportar base de datos:", error);
+            alert("No se pudo completar el respaldo.");
+        }
     };
 
     if (!currentUser?.roles.includes('ADMIN')) {
@@ -416,6 +451,31 @@ const AdminCenter: React.FC = () => {
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             </div>
                             <p className="text-[11px] font-bold text-amber-900 leading-relaxed italic">NOTA: Activar estas opciones asegura que nada salga de tu control, pero requiere tu atención constante para no detener los procesos del equipo de trabajo en el local.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 pt-10 border-t border-gray-100">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-black text-indigo-900 uppercase italic">Respaldo Integral del Sistema</h2>
+                            <p className="text-gray-500 text-sm">Descarga una copia completa de seguridad de tu base de datos local.</p>
+                        </div>
+                        
+                        <div className="bg-slate-900 rounded-md p-10 flex flex-col items-center text-center space-y-6">
+                            <div className="w-20 h-20 bg-slate-800 text-indigo-400 rounded-full flex items-center justify-center shadow-inner">
+                                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="text-white font-black uppercase text-xl italic tracking-tighter">Copia de Seguridad (.JSON)</h4>
+                                <p className="text-slate-400 text-sm max-w-sm">Este archivo contiene todo: inventario, historial de pagos, deudas de sucursales, proveedores y configuraciones críticas.</p>
+                            </div>
+                            <button 
+                                onClick={handleExportDatabase}
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-sm px-10 py-5 rounded-md shadow-2xl shadow-indigo-900/40 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                Generar Respaldo Maestro
+                            </button>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Recomendado al cierre de cada jornada</p>
                         </div>
                     </div>
                 </div>

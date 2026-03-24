@@ -294,6 +294,7 @@ const AppContent: React.FC = () => {
             isAdmin={currentUser.roles.includes('ADMIN')}
             currentUser={currentUser}
             printerSize={printerSize}
+            storeName={storeName}
             onIncrementDispatchPrintCount={handleIncrementDispatchPrintCount}
             onIncrementStorePaymentPrintCount={handleIncrementStorePaymentPrintCount}
           />

@@ -265,7 +265,7 @@ export const SuppliersDashboard: React.FC<SuppliersDashboardProps> = ({
             return;
         }
 
-        // VALIDACIÓN DE PRECIOS SEGÚN REGLAS "GUAICAIPURO"
+        // VALIDACIÓN DE PRECIOS SEGÚN REGLAS "PAGOMATIC"
         for (const item of invoiceForm.items) {
             if (!item.isManual) {
                 const p = products.find(prod => prod.id === item.productId);
